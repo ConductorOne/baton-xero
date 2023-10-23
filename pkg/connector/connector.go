@@ -2,43 +2,63 @@ package connector
 
 import (
 	"context"
-	"io"
+	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
+	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	"github.com/conductorone/baton-xero/pkg/xero"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type Connector struct{}
+type Xero struct {
+	client *xero.Client
+}
 
-// ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
-func (d *Connector) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
+func (x *Xero) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
-		newUserBuilder(),
+		orgBuilder(x.client),
+		userBuilder(x.client),
 	}
 }
 
-// Asset takes an input AssetRef and attempts to fetch it using the connector's authenticated http client
-// It streams a response, always starting with a metadata object, following by chunked payloads for the asset.
-func (d *Connector) Asset(ctx context.Context, asset *v2.AssetRef) (string, io.ReadCloser, error) {
-	return "", nil, nil
-}
-
 // Metadata returns metadata about the connector.
-func (d *Connector) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
+func (x *Xero) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
-		DisplayName: "My Baton Connector",
-		Description: "The template implementation of a baton connector",
+		DisplayName: "Xero",
+		Description: "Connector syncing Xero organization members to Baton",
 	}, nil
 }
 
-// Validate is called to ensure that the connector is properly configured. It should exercise any API credentials
-// to be sure that they are valid.
-func (d *Connector) Validate(ctx context.Context) (annotations.Annotations, error) {
+// Validate hits the Xero API to validate that the configured credentials are valid and compatible.
+func (x *Xero) Validate(ctx context.Context) (annotations.Annotations, error) {
+	// should be able to list users
+	_, err := x.client.GetUsers(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "Provided credentials are invalid")
+	}
+
 	return nil, nil
 }
 
-// New returns a new instance of the connector.
-func New(ctx context.Context) (*Connector, error) {
-	return &Connector{}, nil
+// New returns the Xero connector.
+func New(ctx context.Context, clientId, clientSecret, token string) (*Xero, error) {
+	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := xero.NewClient(
+		ctx,
+		httpClient,
+		xero.NewAuth(token, clientId, clientSecret),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
+	}
+
+	return &Xero{client}, nil
 }
