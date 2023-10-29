@@ -2,7 +2,6 @@ package xero
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -115,7 +114,7 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 	}
 
 	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", constructBasicAuth(auth.ClientId, auth.ClientSecret))
+	req.SetBasicAuth(auth.ClientId, auth.ClientSecret)
 
 	rawResponse, err := httpClient.Do(req)
 	if err != nil {
@@ -190,9 +189,4 @@ func getConnections(ctx context.Context, httpClient *http.Client, token string) 
 	}
 
 	return res, nil
-}
-
-func constructBasicAuth(clientId, clientSecret string) string {
-	encoded := base64.StdEncoding.EncodeToString([]byte(clientId + ":" + clientSecret))
-	return "Basic " + encoded
 }
