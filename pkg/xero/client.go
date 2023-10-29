@@ -2,7 +2,6 @@ package xero
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -27,37 +26,20 @@ const (
 )
 
 type Client struct {
-	httpClient *http.Client
-	baseUrl    *url.URL
-	token      string
-	tenant     string
-}
-
-type Auth struct {
-	Token        string
-	RefreshToken string
-	ClientId     string
-	ClientSecret string
-}
-
-func NewAuth(token, clientId, clientSecret string) *Auth {
-	return &Auth{
-		Token:        token,
-		ClientId:     clientId,
-		ClientSecret: clientSecret,
-	}
+	httpClient   *http.Client
+	baseUrl      *url.URL
+	token        string
+	refreshToken string
+	tenant       string
 }
 
 func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Client, error) {
-	// if using custom integration with client id and secret -> exchange for token
+	// login if token is not present
 	if auth.Token == "" {
-		t, rt, err := Login(ctx, httpClient, auth.ClientId, auth.ClientSecret)
+		err := auth.Login(ctx, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("failed to login: %w", err)
 		}
-
-		auth.Token = t
-		auth.RefreshToken = rt
 	}
 
 	// obtain tenant id required for all requests
@@ -67,10 +49,11 @@ func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Clien
 	}
 
 	return &Client{
-		httpClient: httpClient,
-		baseUrl:    &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint},
-		token:      auth.Token,
-		tenant:     tenantId,
+		httpClient:   httpClient,
+		baseUrl:      &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint},
+		token:        auth.Token,
+		refreshToken: auth.RefreshToken,
+		tenant:       tenantId,
 	}, nil
 }
 
@@ -173,104 +156,4 @@ func (c *Client) doRequest(
 	}
 
 	return nil
-}
-
-func Login(ctx context.Context, httpClient *http.Client, clientId, clientSecret string) (string, string, error) {
-	baseUrl := &url.URL{Scheme: "https", Host: IdentityBase, Path: ExchangeTokenEndpoint}
-
-	data := url.Values{}
-	data.Set("grant_type", "client_credentials")
-	data.Set("scope", "openid email profile offline_access")
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		baseUrl.String(),
-		strings.NewReader(data.Encode()),
-	)
-	if err != nil {
-		return "", "", err
-	}
-
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
-	req.Header.Set("Authorization", constructBasicAuth(clientId, clientSecret))
-
-	rawResponse, err := httpClient.Do(req)
-	if err != nil {
-		return "", "", err
-	}
-
-	defer rawResponse.Body.Close()
-
-	if rawResponse.StatusCode >= 300 {
-		return "", "", status.Error(codes.Code(rawResponse.StatusCode), "Request failed")
-	}
-
-	var res TokenResponse
-
-	if err := json.NewDecoder(rawResponse.Body).Decode(&res); err != nil {
-		return "", "", err
-	}
-
-	return res.AccessToken, res.RefreshToken, nil
-}
-
-type Connection struct {
-	Id         string `json:"id"`
-	TenantId   string `json:"tenantId"`
-	TenantName string `json:"tenantName"`
-}
-
-func GetTenant(ctx context.Context, httpClient *http.Client, token string) (string, error) {
-	conns, err := getConnections(ctx, httpClient, token)
-	if err != nil {
-		return "", err
-	}
-
-	if len(conns) == 0 {
-		return "", fmt.Errorf("no connections found")
-	}
-
-	return conns[0].TenantId, nil
-}
-
-func getConnections(ctx context.Context, httpClient *http.Client, token string) ([]Connection, error) {
-	baseUrl := &url.URL{Scheme: "https", Host: ApiBase, Path: ConnectionsEndpoint}
-
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		baseUrl.String(),
-		nil,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("content-type", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	rawResponse, err := httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rawResponse.Body.Close()
-
-	if rawResponse.StatusCode >= 300 {
-		return nil, status.Error(codes.Code(rawResponse.StatusCode), "Request failed")
-	}
-
-	var res []Connection
-
-	if err := json.NewDecoder(rawResponse.Body).Decode(&res); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func constructBasicAuth(clientId, clientSecret string) string {
-	encoded := base64.StdEncoding.EncodeToString([]byte(clientId + ":" + clientSecret))
-	return "Basic " + encoded
 }

@@ -45,7 +45,7 @@ func (x *Xero) Validate(ctx context.Context) (annotations.Annotations, error) {
 }
 
 // New returns the Xero connector.
-func New(ctx context.Context, clientId, clientSecret, token string) (*Xero, error) {
+func New(ctx context.Context, clientId, clientSecret, token, refreshToken string) (*Xero, error) {
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
 		return nil, err
@@ -54,7 +54,7 @@ func New(ctx context.Context, clientId, clientSecret, token string) (*Xero, erro
 	client, err := xero.NewClient(
 		ctx,
 		httpClient,
-		xero.NewAuth(token, clientId, clientSecret),
+		xero.NewAuth(token, refreshToken, clientId, clientSecret),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
