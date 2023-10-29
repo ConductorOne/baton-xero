@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const defaultScope = "openid email profile offline_access"
+var DefaultScopes = []string{"openid", "email", "profile", "offline_access", "accounting.settings", "accounting.transactions"}
 
 type Auth struct {
 	Token        string
@@ -65,7 +65,9 @@ func ClientCredentialsFlow(ctx context.Context, httpClient *http.Client, clientI
 	data.Set("grant_type", "client_credentials")
 	data.Set("client_id", clientId)
 	data.Set("client_secret", clientSecret)
-	data.Set("scope", defaultScope)
+	for _, s := range DefaultScopes {
+		data.Add("scope", s)
+	}
 
 	t, rt, err := exchangeToken(ctx, httpClient, &data, &Auth{
 		ClientId:     clientId,
@@ -84,7 +86,9 @@ func RefreshTokenFlow(ctx context.Context, httpClient *http.Client, refreshToken
 	data.Set("client_id", clientId)
 	data.Set("client_secret", clientSecret)
 	data.Set("refresh_token", refreshToken)
-	data.Set("scope", defaultScope)
+	for _, s := range DefaultScopes {
+		data.Add("scope", s)
+	}
 
 	t, rt, err := exchangeToken(ctx, httpClient, &data, &Auth{
 		ClientId:     clientId,
