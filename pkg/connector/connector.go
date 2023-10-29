@@ -29,7 +29,7 @@ func (x *Xero) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceS
 func (x *Xero) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 	return &v2.ConnectorMetadata{
 		DisplayName: "Xero",
-		Description: "Connector syncing Xero organization members to Baton",
+		Description: "Connector syncing Xero organizations and their members to Baton",
 	}, nil
 }
 

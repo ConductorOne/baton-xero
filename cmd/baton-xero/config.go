@@ -39,6 +39,6 @@ func validateConfig(ctx context.Context, cfg *config) error {
 func cmdFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().String("token", "", "The Xero access token used to connect to the Xero API. ($BATON_TOKEN)")
 	cmd.PersistentFlags().String("refresh-token", "", "The Xero refresh token used to exchange for a new access token. ($BATON_REFRESH_TOKEN)")
-	cmd.PersistentFlags().String("xero-client-id", "", "The Xero client ID used to connect to the Xero API. ($BATON_CLIENT_ID)")
-	cmd.PersistentFlags().String("xero-client-secret", "", "The Xero client secret used to connect to the Xero API. ($BATON_CLIENT_SECRET)")
+	cmd.PersistentFlags().String("xero-client-id", "", "The Xero client ID used to connect to the Xero API. ($BATON_XERO_CLIENT_ID)")
+	cmd.PersistentFlags().String("xero-client-secret", "", "The Xero client secret used to connect to the Xero API. ($BATON_XERO_CLIENT_SECRET)")
 }
