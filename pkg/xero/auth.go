@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -33,8 +31,6 @@ func NewAuth(token, refreshToken, clientId, clientSecret string) *Auth {
 }
 
 func (a *Auth) Login(ctx context.Context, httpClient *http.Client) error {
-	l := ctxzap.Extract(ctx)
-
 	if a.RefreshToken == "" {
 		// login to obtain new token and refresh token
 		t, rt, err := ClientCredentialsFlow(ctx, httpClient, a.ClientId, a.ClientSecret)
@@ -55,7 +51,6 @@ func (a *Auth) Login(ctx context.Context, httpClient *http.Client) error {
 		a.RefreshToken = rt
 	}
 
-	l.Info("New refresh token", zap.String("refresh_token", a.RefreshToken))
 	return nil
 }
 
