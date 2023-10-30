@@ -44,8 +44,8 @@ func userResource(ctx context.Context, user *xero.User) (*v2.Resource, error) {
 	return resource, nil
 }
 
-func (u *userResourceType) List(ctx context.Context, parentID *v2.ResourceId, pt *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
-	users, err := u.client.GetUsers(ctx)
+func (u *userResourceType) List(ctx context.Context, _ *v2.ResourceId, _ *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+	users, err := u.client.GetUsers(ctx, "")
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("xero-connector: failed to list users: %w", err)
 	}

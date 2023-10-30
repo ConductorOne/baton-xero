@@ -22,6 +22,7 @@ func (x *Xero) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceS
 	return []connectorbuilder.ResourceSyncer{
 		orgBuilder(x.client),
 		userBuilder(x.client),
+		roleBuilder(x.client),
 	}
 }
 
@@ -36,7 +37,7 @@ func (x *Xero) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 // Validate hits the Xero API to validate that the configured credentials are valid and compatible.
 func (x *Xero) Validate(ctx context.Context) (annotations.Annotations, error) {
 	// should be able to list users
-	_, err := x.client.GetUsers(ctx)
+	_, err := x.client.GetOrganizations(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "Provided credentials are invalid")
 	}

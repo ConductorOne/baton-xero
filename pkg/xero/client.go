@@ -23,6 +23,8 @@ const (
 	UsersEndpoint = "/Users"
 	UserEndpoint  = "/Users/%s"
 	OrgsEndpoint  = "/Organisations"
+
+	RoleFilter = "OrganisationRole"
 )
 
 type Client struct {
@@ -74,15 +76,22 @@ type UsersResponse struct {
 }
 
 // GetUsers returns all users under the team account.
-func (c *Client) GetUsers(ctx context.Context) ([]User, error) {
+func (c *Client) GetUsers(ctx context.Context, role string) ([]User, error) {
 	var usersResponse UsersResponse
 
-	err := c.get(
-		ctx,
-		c.joinURL(UsersEndpoint),
-		&usersResponse,
-	)
-
+	var err error
+	if role == "" {
+		err = c.get(ctx, c.joinURL(UsersEndpoint), &usersResponse, nil)
+	} else {
+		err = c.get(
+			ctx,
+			c.joinURL(UsersEndpoint),
+			&usersResponse,
+			map[string]string{
+				RoleFilter: role,
+			},
+		)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +111,7 @@ func (c *Client) GetOrganizations(ctx context.Context) ([]Organization, error) {
 		ctx,
 		c.joinURL(OrgsEndpoint),
 		&orgsResponse,
+		nil,
 	)
 
 	if err != nil {
@@ -111,8 +121,8 @@ func (c *Client) GetOrganizations(ctx context.Context) ([]Organization, error) {
 	return orgsResponse.Orgs, nil
 }
 
-func (c *Client) get(ctx context.Context, urlAddress *url.URL, resourceResponse interface{}) error {
-	return c.doRequest(ctx, urlAddress, http.MethodGet, nil, resourceResponse)
+func (c *Client) get(ctx context.Context, urlAddress *url.URL, resourceResponse interface{}, filters map[string]string) error {
+	return c.doRequest(ctx, urlAddress, http.MethodGet, nil, resourceResponse, filters)
 }
 
 func (c *Client) doRequest(
@@ -121,6 +131,7 @@ func (c *Client) doRequest(
 	method string,
 	data url.Values,
 	resourceResponse interface{},
+	filters map[string]string,
 ) error {
 	var body strings.Reader
 
@@ -128,6 +139,15 @@ func (c *Client) doRequest(
 		encodedData := data.Encode()
 		bodyReader := strings.NewReader(encodedData)
 		body = *bodyReader
+	}
+
+	if filters != nil {
+		q := urlAddress.Query()
+		for k, v := range filters {
+			q.Add("where", fmt.Sprintf("%s==\"%s\"", k, v))
+
+			urlAddress.RawQuery = q.Encode()
+		}
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, urlAddress.String(), &body)
