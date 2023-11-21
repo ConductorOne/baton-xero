@@ -8,10 +8,9 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/cli"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	"github.com/conductorone/baton-xero/pkg/connector"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
-
-	"github.com/conductorone/baton-xero/pkg/connector"
 )
 
 var version = "dev"
@@ -27,6 +26,7 @@ func main() {
 	}
 
 	cmd.Version = version
+	cmdFlags(cmd)
 
 	err = cmd.Execute()
 	if err != nil {
@@ -38,17 +38,17 @@ func main() {
 func getConnector(ctx context.Context, cfg *config) (types.ConnectorServer, error) {
 	l := ctxzap.Extract(ctx)
 
-	cb, err := connector.New(ctx)
+	xeroConnector, err := connector.New(ctx, cfg.XeroClientId, cfg.XeroClientSecret, cfg.AccessToken, cfg.RefreshToken)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
 	}
 
-	c, err := connectorbuilder.NewConnector(ctx, cb)
+	connector, err := connectorbuilder.NewConnector(ctx, xeroConnector)
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err
 	}
 
-	return c, nil
+	return connector, nil
 }
