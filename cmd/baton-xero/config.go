@@ -25,11 +25,11 @@ func validateConfig(ctx context.Context, cfg *config) error {
 	isRefreshTokenSet := cfg.RefreshToken != ""
 
 	if !isOAuthSet && !isTokenSet {
-		return fmt.Errorf("either client id and secret or a token must be set")
+		return fmt.Errorf("either client id and secret or a token must be set, use --help for more information")
 	}
 
 	if isRefreshTokenSet && !isOAuthSet {
-		return fmt.Errorf("refresh token requires client id and secret to be set")
+		return fmt.Errorf("refresh token requires client id and secret to be set, use --help for more information")
 	}
 
 	return nil
