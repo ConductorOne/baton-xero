@@ -123,7 +123,10 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 				body = string(b)
 			}
 		}
-		return "", "", status.Error(codes.Code(rawResponse.StatusCode), fmt.Sprintf("Request failed %s", body))
+		if body == "" {
+			body = "no error body"
+		}
+		return "", "", status.Error(codes.Code(rawResponse.StatusCode), fmt.Sprintf("Request failed: %s", body))
 	}
 
 	var res TokenResponse
