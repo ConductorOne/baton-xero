@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -59,9 +60,7 @@ func ClientCredentialsFlow(ctx context.Context, httpClient *http.Client, clientI
 	data.Set("grant_type", "client_credentials")
 	data.Set("client_id", clientId)
 	data.Set("client_secret", clientSecret)
-	for _, s := range DefaultScopes {
-		data.Add("scope", s)
-	}
+	data.Set("scope", strings.Join(DefaultScopes, " "))
 
 	t, rt, err := exchangeToken(ctx, httpClient, &data, &Auth{
 		ClientId:     clientId,
@@ -80,9 +79,7 @@ func RefreshTokenFlow(ctx context.Context, httpClient *http.Client, refreshToken
 	data.Set("client_id", clientId)
 	data.Set("client_secret", clientSecret)
 	data.Set("refresh_token", refreshToken)
-	for _, s := range DefaultScopes {
-		data.Add("scope", s)
-	}
+	data.Set("scope", strings.Join(DefaultScopes, " "))
 
 	t, rt, err := exchangeToken(ctx, httpClient, &data, &Auth{
 		ClientId:     clientId,
@@ -108,7 +105,7 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 		return "", "", err
 	}
 
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(auth.ClientId, auth.ClientSecret)
 
 	rawResponse, err := httpClient.Do(req)
@@ -119,7 +116,17 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 	defer rawResponse.Body.Close()
 
 	if rawResponse.StatusCode >= 300 {
-		return "", "", status.Error(codes.Code(rawResponse.StatusCode), "Request failed")
+		body := ""
+		if rawResponse.Body != nil {
+			b, _ := io.ReadAll(rawResponse.Body)
+			if b != nil {
+				body = string(b)
+			}
+		}
+		if body == "" {
+			body = "no error body"
+		}
+		return "", "", status.Error(codes.Code(rawResponse.StatusCode), fmt.Sprintf("Request failed: %s", body))
 	}
 
 	var res TokenResponse
