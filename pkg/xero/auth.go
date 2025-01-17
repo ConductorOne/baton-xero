@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var DefaultScopes = []string{"openid", "email", "profile", "offline_access", "accounting.settings", "accounting.transactions"}
+var DefaultScopes = []string{"accounting.settings.read"}
 
 type Auth struct {
 	Token        string
