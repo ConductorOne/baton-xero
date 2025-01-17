@@ -10,6 +10,7 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/conductorone/baton-xero/pkg/xero"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/spf13/viper"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -46,7 +47,14 @@ func (x *Xero) Validate(ctx context.Context) (annotations.Annotations, error) {
 }
 
 // New returns the Xero connector.
-func New(ctx context.Context, clientId, clientSecret, token, refreshToken string) (*Xero, error) {
+func New(ctx context.Context, cfg *viper.Viper) (*Xero, error) {
+	var (
+		token        = cfg.GetString("token")
+		refreshToken = cfg.GetString("refresh-token")
+		clientId     = cfg.GetString("xero-client-id")
+		clientSecret = cfg.GetString("xero-client-secret")
+	)
+
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
 		return nil, err
