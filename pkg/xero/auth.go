@@ -126,7 +126,7 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 		if body == "" {
 			body = "no error body"
 		}
-		return "", "", status.Error(codes.Code(rawResponse.StatusCode), fmt.Sprintf("Request failed: %s", body))
+		return "", "", status.Error(codes.Code(rawResponse.StatusCode), fmt.Sprintf("Request failed: %s", body)) //nolint:gosec // disable G115
 	}
 
 	var res TokenResponse
@@ -181,7 +181,7 @@ func getConnections(ctx context.Context, httpClient *http.Client, token string) 
 	defer rawResponse.Body.Close()
 
 	if rawResponse.StatusCode >= 300 {
-		return nil, status.Error(codes.Code(rawResponse.StatusCode), "Request failed")
+		return nil, status.Error(codes.Code(rawResponse.StatusCode), "Request failed") //nolint:gosec // disable G115
 	}
 
 	var res []Connection
