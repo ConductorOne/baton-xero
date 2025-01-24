@@ -31,21 +31,26 @@ func NewAuth(token, refreshToken, clientId, clientSecret string) *Auth {
 	}
 }
 
+// This may be called if we have no token, or when the existing token has expired
 func (a *Auth) Login(ctx context.Context, httpClient *http.Client) error {
-	if a.RefreshToken == "" {
-		// login to obtain new token and refresh token
-		t, rt, err := ClientCredentialsFlow(ctx, httpClient, a.ClientId, a.ClientSecret)
+	if a.ClientId == "" {
+		// access token must have been explicitly supplied to the connector
+		return fmt.Errorf("failed to authenticate: no client ID")
+	} else if a.RefreshToken == "" {
+		// this is a "custom connection" - use the client_credentials flow
+		// https://developer.xero.com/documentation/guides/oauth2/custom-connections/
+		t, _, err := ClientCredentialsFlow(ctx, httpClient, a.ClientId, a.ClientSecret)
 		if err != nil {
-			return fmt.Errorf("failed to login: %w", err)
+			return fmt.Errorf("failed to authenticate: %w", err)
 		}
 
 		a.Token = t
-		a.RefreshToken = rt
 	} else {
-		// use refresh token to obtain new token if present
+		// this is a "web server" client - use the refresh_token flow
+		// https://developer.xero.com/documentation/guides/oauth2/auth-flow/
 		t, rt, err := RefreshTokenFlow(ctx, httpClient, a.RefreshToken, a.ClientId, a.ClientSecret)
 		if err != nil {
-			return fmt.Errorf("failed to refresh token: %w", err)
+			return fmt.Errorf("failed to authenticate: %w", err)
 		}
 
 		a.Token = t
@@ -58,8 +63,6 @@ func (a *Auth) Login(ctx context.Context, httpClient *http.Client) error {
 func ClientCredentialsFlow(ctx context.Context, httpClient *http.Client, clientId, clientSecret string) (string, string, error) {
 	data := url.Values{}
 	data.Set("grant_type", "client_credentials")
-	data.Set("client_id", clientId)
-	data.Set("client_secret", clientSecret)
 	data.Set("scope", strings.Join(DefaultScopes, " "))
 
 	t, rt, err := exchangeToken(ctx, httpClient, &data, &Auth{
@@ -76,10 +79,7 @@ func ClientCredentialsFlow(ctx context.Context, httpClient *http.Client, clientI
 func RefreshTokenFlow(ctx context.Context, httpClient *http.Client, refreshToken, clientId, clientSecret string) (string, string, error) {
 	data := url.Values{}
 	data.Set("grant_type", "refresh_token")
-	data.Set("client_id", clientId)
-	data.Set("client_secret", clientSecret)
 	data.Set("refresh_token", refreshToken)
-	data.Set("scope", strings.Join(DefaultScopes, " "))
 
 	t, rt, err := exchangeToken(ctx, httpClient, &data, &Auth{
 		ClientId:     clientId,

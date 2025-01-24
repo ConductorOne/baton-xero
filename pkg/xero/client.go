@@ -39,7 +39,7 @@ func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Clien
 	if auth.Token == "" {
 		err := auth.Login(ctx, httpClient)
 		if err != nil {
-			return nil, fmt.Errorf("failed to login: %w", err)
+			return nil, err
 		}
 	}
 
