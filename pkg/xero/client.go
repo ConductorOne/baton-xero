@@ -28,11 +28,10 @@ const (
 )
 
 type Client struct {
-	httpClient   *http.Client
-	baseUrl      *url.URL
-	token        string
-	refreshToken string
-	tenant       string
+	httpClient *http.Client
+	baseUrl    *url.URL
+	auth       *Auth
+	tenant     string
 }
 
 func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Client, error) {
@@ -51,11 +50,10 @@ func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Clien
 	}
 
 	return &Client{
-		httpClient:   httpClient,
-		baseUrl:      &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint},
-		token:        auth.Token,
-		refreshToken: auth.RefreshToken,
-		tenant:       tenantId,
+		httpClient: httpClient,
+		baseUrl:    &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint},
+		auth:       auth,
+		tenant:     tenantId,
 	}, nil
 }
 
@@ -157,7 +155,7 @@ func (c *Client) doRequest(
 
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.auth.Token))
 	req.Header.Set("xero-tenant-id", c.tenant)
 
 	rawResponse, err := c.httpClient.Do(req)
