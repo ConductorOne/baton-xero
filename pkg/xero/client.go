@@ -57,6 +57,10 @@ func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Clien
 	}, nil
 }
 
+func (c *Client) Login(ctx context.Context) error {
+	return c.auth.Login(ctx, c.httpClient)
+}
+
 func (c *Client) joinURL(path string) *url.URL {
 	newURL := *c.baseUrl
 	newURL.Path += path

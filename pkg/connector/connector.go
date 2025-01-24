@@ -36,13 +36,28 @@ func (x *Xero) Metadata(ctx context.Context) (*v2.ConnectorMetadata, error) {
 
 // Validate hits the Xero API to validate that the configured credentials are valid and compatible.
 func (x *Xero) Validate(ctx context.Context) (annotations.Annotations, error) {
-	// should be able to list users
+	// should be able to list orgs
 	_, err := x.client.GetOrganizations(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, "Provided credentials are invalid")
+	if err == nil {
+		return nil, nil
 	}
 
-	return nil, nil
+	if status.Code(err) == 401 {
+		l := ctxzap.Extract(ctx)
+		l.Info("Connector validation failed (unauthorized) - re-authenticating")
+
+		authErr := x.client.Login(ctx)
+		if authErr != nil {
+			return nil, authErr
+		}
+
+		_, err = x.client.GetOrganizations(ctx)
+		if err == nil {
+			return nil, nil
+		}
+	}
+
+	return nil, status.Error(codes.Unauthenticated, "Provided credentials are invalid")
 }
 
 // New returns the Xero connector.
