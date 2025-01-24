@@ -92,6 +92,11 @@ func RefreshTokenFlow(ctx context.Context, httpClient *http.Client, refreshToken
 	return t, rt, nil
 }
 
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Values, auth *Auth) (string, string, error) {
 	baseUrl := &url.URL{Scheme: "https", Host: IdentityBase, Path: ExchangeTokenEndpoint}
 

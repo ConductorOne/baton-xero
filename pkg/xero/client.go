@@ -64,11 +64,6 @@ func (c *Client) joinURL(path string) *url.URL {
 	return &newURL
 }
 
-type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 type UsersResponse struct {
 	Users []User `json:"users"`
 }
