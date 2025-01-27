@@ -31,12 +31,15 @@ func NewAuth(token, refreshToken, clientId, clientSecret string) *Auth {
 	}
 }
 
-// This may be called if we have no token, or when the existing token has expired
+// This may be called if we have no token, or when the existing token has expired. Avoid calling
+// this if the token has been explicitly supplied to the connector.
 func (a *Auth) Login(ctx context.Context, httpClient *http.Client) error {
 	if a.ClientId == "" {
 		// access token must have been explicitly supplied to the connector
 		return fmt.Errorf("failed to authenticate: no client ID")
-	} else if a.RefreshToken == "" {
+	}
+
+	if a.RefreshToken == "" {
 		// this is a "custom connection" - use the client_credentials flow
 		// https://developer.xero.com/documentation/guides/oauth2/custom-connections/
 		t, _, err := ClientCredentialsFlow(ctx, httpClient, a.ClientId, a.ClientSecret)
