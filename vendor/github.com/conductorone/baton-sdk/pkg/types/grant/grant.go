@@ -17,6 +17,9 @@ type GrantPrincipal interface {
 	GetBatonResource() bool
 }
 
+// Sometimes C1 doesn't have the grant ID, but does have the principal and entitlement.
+const UnknownGrantId string = "🧸_UNKNOWN_GRANT_ID"
+
 func WithGrantMetadata(metadata map[string]interface{}) GrantOption {
 	return func(g *v2.Grant) error {
 		md, err := structpb.NewStruct(metadata)
@@ -24,10 +27,18 @@ func WithGrantMetadata(metadata map[string]interface{}) GrantOption {
 			return err
 		}
 
+		meta := &v2.GrantMetadata{Metadata: md}
 		annos := annotations.Annotations(g.Annotations)
-		annos.Update(md)
+		annos.Update(meta)
 		g.Annotations = annos
 
+		return nil
+	}
+}
+
+func WithExternalPrincipalID(externalID *v2.ExternalId) GrantOption {
+	return func(g *v2.Grant) error {
+		g.Principal.ExternalId = externalID
 		return nil
 	}
 }

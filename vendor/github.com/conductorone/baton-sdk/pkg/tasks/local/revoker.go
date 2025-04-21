@@ -18,6 +18,14 @@ type localRevoker struct {
 	grantID string
 }
 
+func (m *localRevoker) GetTempDir() string {
+	return ""
+}
+
+func (m *localRevoker) ShouldDebug() bool {
+	return false
+}
+
 func (m *localRevoker) Next(ctx context.Context) (*v1.Task, time.Duration, error) {
 	var task *v1.Task
 	m.o.Do(func() {
@@ -44,7 +52,7 @@ func (m *localRevoker) Process(ctx context.Context, task *v1.Task, cc types.Conn
 	return nil
 }
 
-// NewGranter returns a task manager that queues a sync task.
+// NewRevoker returns a task manager that queues a revoke task.
 func NewRevoker(ctx context.Context, dbPath string, grantID string) tasks.Manager {
 	return &localRevoker{
 		dbPath:  dbPath,

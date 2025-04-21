@@ -11,13 +11,14 @@ import (
 	"os"
 	"time"
 
-	v1 "github.com/conductorone/baton-sdk/pb/c1/connectorapi/baton/v1"
-	"github.com/conductorone/baton-sdk/pkg/sdk"
-	"github.com/conductorone/baton-sdk/pkg/ugrpc"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	v1 "github.com/conductorone/baton-sdk/pb/c1/connectorapi/baton/v1"
+	"github.com/conductorone/baton-sdk/pkg/sdk"
+	"github.com/conductorone/baton-sdk/pkg/ugrpc"
 )
 
 const (
@@ -170,13 +171,17 @@ func (c *c1ServiceClient) Upload(ctx context.Context, task *v1.Task, r io.ReadSe
 		return err
 	}
 
-	chunkCount := uint64(math.Ceil(float64(rLen) / float64(fileChunkSize)))
-	for i := uint64(0); i < chunkCount; i++ {
-		l.Debug("sending upload chunk", zap.Uint64("chunk", i), zap.Uint64("total_chunks", chunkCount))
+	chunkCount := int(math.Ceil(float64(rLen) / float64(fileChunkSize)))
+	for i := 0; i < chunkCount; i++ {
+		l.Debug(
+			"sending upload chunk",
+			zap.Int("chunk", i),
+			zap.Int("total_chunks", chunkCount),
+		)
 
 		chunkSize := fileChunkSize
 		if i == chunkCount-1 {
-			chunkSize = int(rLen) - int(i)*fileChunkSize
+			chunkSize = int(rLen) - i*fileChunkSize
 		}
 
 		chunk := make([]byte, chunkSize)
@@ -220,6 +225,7 @@ func (c *c1ServiceClient) Upload(ctx context.Context, task *v1.Task, r io.ReadSe
 	return nil
 }
 
+// newServiceClient creates a client and dials to the gRPC server set with BATON_C1_API_HOST.
 func newServiceClient(ctx context.Context, clientID string, clientSecret string) (BatonServiceClient, error) {
 	credProvider, clientName, tokenHost, err := ugrpc.NewC1CredentialProvider(ctx, clientID, clientSecret)
 	if err != nil {

@@ -5,33 +5,45 @@ import (
 	"errors"
 	"io"
 	"os"
-
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
-	"go.uber.org/zap"
+	"path/filepath"
 
 	v1 "github.com/conductorone/baton-sdk/pb/c1/connectorapi/baton/v1"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	sdkSync "github.com/conductorone/baton-sdk/pkg/sync"
 	"github.com/conductorone/baton-sdk/pkg/tasks"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 type fullSyncHelpers interface {
 	ConnectorClient() types.ConnectorClient
 	Upload(ctx context.Context, r io.ReadSeeker) error
-	FinishTask(ctx context.Context, annos annotations.Annotations, err error) error
+	FinishTask(ctx context.Context, resp proto.Message, annos annotations.Annotations, err error) error
 	HeartbeatTask(ctx context.Context, annos annotations.Annotations) (context.Context, error)
 	TempDir() string
 }
 
 type fullSyncTaskHandler struct {
-	task    *v1.Task
-	helpers fullSyncHelpers
+	task         *v1.Task
+	helpers      fullSyncHelpers
+	skipFullSync bool
 }
 
 func (c *fullSyncTaskHandler) sync(ctx context.Context, c1zPath string) error {
 	l := ctxzap.Extract(ctx).With(zap.String("task_id", c.task.GetId()), zap.Stringer("task_type", tasks.GetType(c.task)))
-	syncer, err := sdkSync.NewSyncer(ctx, c.helpers.ConnectorClient(), sdkSync.WithC1ZPath(c1zPath), sdkSync.WithTmpDir(c.helpers.TempDir()))
+
+	syncOpts := []sdkSync.SyncOpt{
+		sdkSync.WithC1ZPath(c1zPath),
+		sdkSync.WithTmpDir(c.helpers.TempDir()),
+	}
+
+	if c.skipFullSync {
+		syncOpts = append(syncOpts, sdkSync.WithSkipFullSync())
+	}
+
+	syncer, err := sdkSync.NewSyncer(ctx, c.helpers.ConnectorClient(), syncOpts...)
 	if err != nil {
 		l.Error("failed to create syncer", zap.Error(err))
 		return err
@@ -70,19 +82,18 @@ func (c *fullSyncTaskHandler) sync(ctx context.Context, c1zPath string) error {
 func (c *fullSyncTaskHandler) HandleTask(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
 	l := ctxzap.Extract(ctx).With(zap.String("task_id", c.task.GetId()), zap.Stringer("task_type", tasks.GetType(c.task)))
 	l.Info("Handling full sync task.")
 
 	assetFile, err := os.CreateTemp(c.helpers.TempDir(), "baton-sdk-sync-upload")
 	if err != nil {
 		l.Error("failed to create temp file", zap.Error(err))
-		return c.helpers.FinishTask(ctx, nil, err)
+		return c.helpers.FinishTask(ctx, nil, nil, err)
 	}
 	c1zPath := assetFile.Name()
 	err = assetFile.Close()
 	if err != nil {
-		return c.helpers.FinishTask(ctx, nil, err)
+		return c.helpers.FinishTask(ctx, nil, nil, err)
 	}
 
 	// TODO(morgabra) Add annotation for for sync_id, or come up with some other way to track sync state.
@@ -95,13 +106,13 @@ func (c *fullSyncTaskHandler) HandleTask(ctx context.Context) error {
 	err = c.sync(ctx, c1zPath)
 	if err != nil {
 		l.Error("failed to sync", zap.Error(err))
-		return c.helpers.FinishTask(ctx, nil, err)
+		return c.helpers.FinishTask(ctx, nil, nil, err)
 	}
 
 	c1zF, err := os.Open(c1zPath)
 	if err != nil {
 		l.Error("failed to open sync asset prior to upload", zap.Error(err))
-		return c.helpers.FinishTask(ctx, nil, err)
+		return c.helpers.FinishTask(ctx, nil, nil, err)
 	}
 	defer func(f *os.File) {
 		err = f.Close()
@@ -117,15 +128,57 @@ func (c *fullSyncTaskHandler) HandleTask(ctx context.Context) error {
 	err = c.helpers.Upload(ctx, c1zF)
 	if err != nil {
 		l.Error("failed to upload sync asset", zap.Error(err))
-		return c.helpers.FinishTask(ctx, nil, err)
+		return c.helpers.FinishTask(ctx, nil, nil, err)
 	}
 
-	return c.helpers.FinishTask(ctx, nil, nil)
+	err = uploadDebugLogs(ctx, c.helpers)
+	if err != nil {
+		return c.helpers.FinishTask(ctx, nil, nil, err)
+	}
+
+	return c.helpers.FinishTask(ctx, nil, nil, nil)
 }
 
-func newFullSyncTaskHandler(task *v1.Task, helpers fullSyncHelpers) tasks.TaskHandler {
+func newFullSyncTaskHandler(task *v1.Task, helpers fullSyncHelpers, skipFullSync bool) tasks.TaskHandler {
 	return &fullSyncTaskHandler{
-		task:    task,
-		helpers: helpers,
+		task:         task,
+		helpers:      helpers,
+		skipFullSync: skipFullSync,
+	}
+}
+
+func uploadDebugLogs(ctx context.Context, helper fullSyncHelpers) error {
+	l := ctxzap.Extract(ctx)
+
+	debugfilelocation := filepath.Join(helper.TempDir(), "debug.log")
+
+	_, err := os.Stat(debugfilelocation)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			l.Warn("debug log file does not exists", zap.Error(err))
+			return nil
+		}
+		return err
+	} else {
+		debugfile, err := os.Open(debugfilelocation)
+		if err != nil {
+			return err
+		}
+		defer debugfile.Close()
+
+		l.Info("uploading debug logs", zap.String("file", debugfilelocation))
+		err = helper.Upload(ctx, debugfile)
+
+		if err != nil {
+			return err
+		}
+		defer func() {
+			err := os.Remove(debugfilelocation)
+			if err != nil {
+				l.Error("failed to delete file with debug logs", zap.Error(err), zap.String("file", debugfilelocation))
+			}
+		}()
+
+		return nil
 	}
 }

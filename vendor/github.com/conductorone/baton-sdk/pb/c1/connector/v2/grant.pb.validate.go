@@ -511,10 +511,10 @@ func (m *GrantsServiceListGrantsRequest) validate(all bool) error {
 
 	if m.GetPageToken() != "" {
 
-		if l := len(m.GetPageToken()); l < 1 || l > 4096 {
+		if l := len(m.GetPageToken()); l < 1 || l > 1048576 {
 			err := GrantsServiceListGrantsRequestValidationError{
 				field:  "PageToken",
-				reason: "value length must be between 1 and 4096 bytes, inclusive",
+				reason: "value length must be between 1 and 1048576 bytes, inclusive",
 			}
 			if !all {
 				return err
@@ -697,10 +697,10 @@ func (m *GrantsServiceListGrantsResponse) validate(all bool) error {
 
 	if m.GetNextPageToken() != "" {
 
-		if l := len(m.GetNextPageToken()); l < 1 || l > 4096 {
+		if l := len(m.GetNextPageToken()); l < 1 || l > 1048576 {
 			err := GrantsServiceListGrantsResponseValidationError{
 				field:  "NextPageToken",
-				reason: "value length must be between 1 and 4096 bytes, inclusive",
+				reason: "value length must be between 1 and 1048576 bytes, inclusive",
 			}
 			if !all {
 				return err
@@ -1091,6 +1091,40 @@ func (m *GrantManagerServiceGrantResponse) validate(all bool) error {
 			if err := v.Validate(); err != nil {
 				return GrantManagerServiceGrantResponseValidationError{
 					field:  fmt.Sprintf("Annotations[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	for idx, item := range m.GetGrants() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, GrantManagerServiceGrantResponseValidationError{
+						field:  fmt.Sprintf("Grants[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, GrantManagerServiceGrantResponseValidationError{
+						field:  fmt.Sprintf("Grants[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GrantManagerServiceGrantResponseValidationError{
+					field:  fmt.Sprintf("Grants[%v]", idx),
 					reason: "embedded message failed validation",
 					cause:  err,
 				}

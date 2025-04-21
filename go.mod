@@ -1,11 +1,11 @@
 module github.com/conductorone/baton-xero
 
-go 1.20
+go 1.23
 
 require (
 	github.com/conductorone/baton-sdk v0.2.63
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/viper v1.19.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.21.0
 	google.golang.org/grpc v1.69.4
@@ -68,8 +68,8 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
+	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.19.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.14 // indirect
 	github.com/tklauser/numcpus v0.9.0 // indirect
