@@ -9,9 +9,16 @@ else
 OUTPUT_PATH = ${BUILD_DIR}/baton-xero
 endif
 
+# Set the build tag conditionally based on ENABLE_LAMBDA
+ifdef BATON_LAMBDA_SUPPORT
+	BUILD_TAGS=-tags baton_lambda_support
+else
+	BUILD_TAGS=
+endif
+
 .PHONY: build
 build: $(GENERATED_CONF)
-	go build -o ${OUTPUT_PATH} ./cmd/baton-xero
+	go build ${BUILD_TAGS} -o ${OUTPUT_PATH} ./cmd/baton-xero
 
 $(GENERATED_CONF): pkg/config/config.go go.mod
 	@echo "Generating $(GENERATED_CONF)..."
