@@ -8,6 +8,7 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/tasks"
@@ -22,7 +23,7 @@ type taskHelpers struct {
 	cc            types.ConnectorClient
 	tempDir       string
 
-	taskFinisher func(ctx context.Context, task *v1.Task, annos annotations.Annotations, err error) error
+	taskFinisher func(ctx context.Context, task *v1.Task, resp proto.Message, annos annotations.Annotations, err error) error
 }
 
 func (t *taskHelpers) ConnectorClient() types.ConnectorClient {
@@ -30,17 +31,23 @@ func (t *taskHelpers) ConnectorClient() types.ConnectorClient {
 }
 
 func (t *taskHelpers) Upload(ctx context.Context, r io.ReadSeeker) error {
+	ctx, span := tracer.Start(ctx, "taskHelpers.Upload")
+	defer span.End()
+
 	if t.task == nil {
 		return errors.New("cannot upload: task is nil")
 	}
 	return t.serviceClient.Upload(ctx, t.task, r)
 }
 
-func (t *taskHelpers) FinishTask(ctx context.Context, annos annotations.Annotations, err error) error {
+func (t *taskHelpers) FinishTask(ctx context.Context, resp proto.Message, annos annotations.Annotations, err error) error {
+	ctx, span := tracer.Start(ctx, "taskHelpers.FinishTask")
+	defer span.End()
+
 	if t.task == nil {
 		return errors.New("cannot finish task: task is nil")
 	}
-	return t.taskFinisher(ctx, t.task, annos, err)
+	return t.taskFinisher(ctx, t.task, resp, annos, err)
 }
 
 func (t *taskHelpers) HelloClient() batonHelloClient {
@@ -57,21 +64,24 @@ func (t *taskHelpers) TempDir() string {
 // If the heartbeat fails, this function will retry up to taskMaximumHeartbeatFailures times before cancelling the returned context with ErrTaskHeartbeatFailed.
 // If the task is cancelled by the server, the returned context will be cancelled with ErrTaskCancelled.
 func (t *taskHelpers) HeartbeatTask(ctx context.Context, annos annotations.Annotations) (context.Context, error) {
+	ctx, span := tracer.Start(ctx, "taskHelpers.HeartbeatTask")
+	defer span.End()
+
 	l := ctxzap.Extract(ctx).With(zap.String("task_id", t.task.GetId()), zap.Stringer("task_type", tasks.GetType(t.task)))
 	rCtx, rCancel := context.WithCancelCause(ctx)
 
 	l.Debug("heartbeat: sending initial heartbeat")
-	resp, err := t.serviceClient.Heartbeat(ctx, &v1.BatonServiceHeartbeatRequest{
+	resp, err := t.serviceClient.Heartbeat(ctx, v1.BatonServiceHeartbeatRequest_builder{
 		TaskId:      t.task.GetId(),
 		Annotations: annos,
-	})
+	}.Build())
 	if err != nil {
 		err = errors.Join(ErrTaskHeartbeatFailed, err)
 		l.Error("heartbeat: failed sending initial heartbeat", zap.Error(err))
 		rCancel(err)
 		return nil, err
 	}
-	if resp.Cancelled {
+	if resp.GetCancelled() {
 		err = ErrTaskCancelled
 		l.Debug("heartbeat: task was cancelled by server")
 		rCancel(err)
@@ -83,9 +93,9 @@ func (t *taskHelpers) HeartbeatTask(ctx context.Context, annos annotations.Annot
 
 	go func() {
 		attempts := 0
+		l = l.With(zap.Int("attempts", attempts))
 		for {
 			attempts++
-			l = l.With(zap.Int("attempts", attempts))
 
 			if attempts >= taskMaximumHeartbeatFailures {
 				l.Error("heartbeat: failed after 10 attempts")
@@ -101,10 +111,10 @@ func (t *taskHelpers) HeartbeatTask(ctx context.Context, annos annotations.Annot
 				return
 
 			case <-time.After(heartbeatInterval):
-				resp, err := t.serviceClient.Heartbeat(ctx, &v1.BatonServiceHeartbeatRequest{
+				resp, err := t.serviceClient.Heartbeat(ctx, v1.BatonServiceHeartbeatRequest_builder{
 					TaskId:      t.task.GetId(),
 					Annotations: annos,
-				})
+				}.Build())
 				if err != nil {
 					// If our parent context gets cancelled we can just leave.
 					if ctxErr := ctx.Err(); ctxErr != nil {
@@ -126,7 +136,7 @@ func (t *taskHelpers) HeartbeatTask(ctx context.Context, annos annotations.Annot
 
 				heartbeatInterval = getHeartbeatInterval(resp.GetNextHeartbeat().AsDuration())
 				l.Debug("heartbeat: success", zap.Duration("next_heartbeat", heartbeatInterval))
-				if resp.Cancelled {
+				if resp.GetCancelled() {
 					l.Debug("heartbeat: task was cancelled by server")
 					rCancel(ErrTaskCancelled)
 					return

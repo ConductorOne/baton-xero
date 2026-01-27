@@ -202,6 +202,151 @@ func (m *UserTrait) validate(all bool) error {
 
 	// no validation rules for Login
 
+	if all {
+		switch v := interface{}(m.GetCreatedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "CreatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "CreatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetCreatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UserTraitValidationError{
+				field:  "CreatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetLastLogin()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "LastLogin",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "LastLogin",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLastLogin()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UserTraitValidationError{
+				field:  "LastLogin",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetMfaStatus()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "MfaStatus",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "MfaStatus",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetMfaStatus()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UserTraitValidationError{
+				field:  "MfaStatus",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetSsoStatus()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "SsoStatus",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "SsoStatus",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetSsoStatus()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UserTraitValidationError{
+				field:  "SsoStatus",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetStructuredName()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "StructuredName",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UserTraitValidationError{
+					field:  "StructuredName",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetStructuredName()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UserTraitValidationError{
+				field:  "StructuredName",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return UserTraitMultiError(errors)
 	}
@@ -215,7 +360,7 @@ type UserTraitMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UserTraitMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -372,7 +517,7 @@ type GroupTraitMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GroupTraitMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -487,6 +632,35 @@ func (m *RoleTrait) validate(all bool) error {
 		}
 	}
 
+	if all {
+		switch v := interface{}(m.GetRoleScopeConditions()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, RoleTraitValidationError{
+					field:  "RoleScopeConditions",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, RoleTraitValidationError{
+					field:  "RoleScopeConditions",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRoleScopeConditions()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RoleTraitValidationError{
+				field:  "RoleScopeConditions",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	if len(errors) > 0 {
 		return RoleTraitMultiError(errors)
 	}
@@ -500,7 +674,7 @@ type RoleTraitMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m RoleTraitMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -563,6 +737,430 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = RoleTraitValidationError{}
+
+// Validate checks the field values on RoleScopeConditions with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *RoleScopeConditions) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RoleScopeConditions with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// RoleScopeConditionsMultiError, or nil if none found.
+func (m *RoleScopeConditions) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RoleScopeConditions) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Type
+
+	for idx, item := range m.GetConditions() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, RoleScopeConditionsValidationError{
+						field:  fmt.Sprintf("Conditions[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, RoleScopeConditionsValidationError{
+						field:  fmt.Sprintf("Conditions[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return RoleScopeConditionsValidationError{
+					field:  fmt.Sprintf("Conditions[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return RoleScopeConditionsMultiError(errors)
+	}
+
+	return nil
+}
+
+// RoleScopeConditionsMultiError is an error wrapping multiple validation
+// errors returned by RoleScopeConditions.ValidateAll() if the designated
+// constraints aren't met.
+type RoleScopeConditionsMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RoleScopeConditionsMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RoleScopeConditionsMultiError) AllErrors() []error { return m }
+
+// RoleScopeConditionsValidationError is the validation error returned by
+// RoleScopeConditions.Validate if the designated constraints aren't met.
+type RoleScopeConditionsValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RoleScopeConditionsValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RoleScopeConditionsValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RoleScopeConditionsValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RoleScopeConditionsValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RoleScopeConditionsValidationError) ErrorName() string {
+	return "RoleScopeConditionsValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e RoleScopeConditionsValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRoleScopeConditions.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RoleScopeConditionsValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RoleScopeConditionsValidationError{}
+
+// Validate checks the field values on RoleScopeCondition with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *RoleScopeCondition) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on RoleScopeCondition with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// RoleScopeConditionMultiError, or nil if none found.
+func (m *RoleScopeCondition) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *RoleScopeCondition) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Expression
+
+	if len(errors) > 0 {
+		return RoleScopeConditionMultiError(errors)
+	}
+
+	return nil
+}
+
+// RoleScopeConditionMultiError is an error wrapping multiple validation errors
+// returned by RoleScopeCondition.ValidateAll() if the designated constraints
+// aren't met.
+type RoleScopeConditionMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m RoleScopeConditionMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m RoleScopeConditionMultiError) AllErrors() []error { return m }
+
+// RoleScopeConditionValidationError is the validation error returned by
+// RoleScopeCondition.Validate if the designated constraints aren't met.
+type RoleScopeConditionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RoleScopeConditionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RoleScopeConditionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RoleScopeConditionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RoleScopeConditionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RoleScopeConditionValidationError) ErrorName() string {
+	return "RoleScopeConditionValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e RoleScopeConditionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRoleScopeCondition.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RoleScopeConditionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RoleScopeConditionValidationError{}
+
+// Validate checks the field values on ScopeBindingTrait with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *ScopeBindingTrait) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ScopeBindingTrait with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// ScopeBindingTraitMultiError, or nil if none found.
+func (m *ScopeBindingTrait) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ScopeBindingTrait) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if m.GetRoleId() == nil {
+		err := ScopeBindingTraitValidationError{
+			field:  "RoleId",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetRoleId()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ScopeBindingTraitValidationError{
+					field:  "RoleId",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ScopeBindingTraitValidationError{
+					field:  "RoleId",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetRoleId()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ScopeBindingTraitValidationError{
+				field:  "RoleId",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if m.GetScopeResourceId() == nil {
+		err := ScopeBindingTraitValidationError{
+			field:  "ScopeResourceId",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if all {
+		switch v := interface{}(m.GetScopeResourceId()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, ScopeBindingTraitValidationError{
+					field:  "ScopeResourceId",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, ScopeBindingTraitValidationError{
+					field:  "ScopeResourceId",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetScopeResourceId()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ScopeBindingTraitValidationError{
+				field:  "ScopeResourceId",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return ScopeBindingTraitMultiError(errors)
+	}
+
+	return nil
+}
+
+// ScopeBindingTraitMultiError is an error wrapping multiple validation errors
+// returned by ScopeBindingTrait.ValidateAll() if the designated constraints
+// aren't met.
+type ScopeBindingTraitMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ScopeBindingTraitMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ScopeBindingTraitMultiError) AllErrors() []error { return m }
+
+// ScopeBindingTraitValidationError is the validation error returned by
+// ScopeBindingTrait.Validate if the designated constraints aren't met.
+type ScopeBindingTraitValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ScopeBindingTraitValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ScopeBindingTraitValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ScopeBindingTraitValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ScopeBindingTraitValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ScopeBindingTraitValidationError) ErrorName() string {
+	return "ScopeBindingTraitValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e ScopeBindingTraitValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sScopeBindingTrait.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ScopeBindingTraitValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ScopeBindingTraitValidationError{}
 
 // Validate checks the field values on AppTrait with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
@@ -733,7 +1331,7 @@ type AppTraitMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m AppTraitMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -796,6 +1394,279 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = AppTraitValidationError{}
+
+// Validate checks the field values on SecretTrait with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *SecretTrait) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on SecretTrait with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in SecretTraitMultiError, or
+// nil if none found.
+func (m *SecretTrait) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *SecretTrait) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetProfile()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "Profile",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "Profile",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetProfile()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SecretTraitValidationError{
+				field:  "Profile",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetCreatedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "CreatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "CreatedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetCreatedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SecretTraitValidationError{
+				field:  "CreatedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetExpiresAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "ExpiresAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "ExpiresAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetExpiresAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SecretTraitValidationError{
+				field:  "ExpiresAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetLastUsedAt()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "LastUsedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "LastUsedAt",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetLastUsedAt()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SecretTraitValidationError{
+				field:  "LastUsedAt",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetCreatedById()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "CreatedById",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "CreatedById",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetCreatedById()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SecretTraitValidationError{
+				field:  "CreatedById",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetIdentityId()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "IdentityId",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, SecretTraitValidationError{
+					field:  "IdentityId",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetIdentityId()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return SecretTraitValidationError{
+				field:  "IdentityId",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return SecretTraitMultiError(errors)
+	}
+
+	return nil
+}
+
+// SecretTraitMultiError is an error wrapping multiple validation errors
+// returned by SecretTrait.ValidateAll() if the designated constraints aren't met.
+type SecretTraitMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m SecretTraitMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m SecretTraitMultiError) AllErrors() []error { return m }
+
+// SecretTraitValidationError is the validation error returned by
+// SecretTrait.Validate if the designated constraints aren't met.
+type SecretTraitValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e SecretTraitValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e SecretTraitValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e SecretTraitValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e SecretTraitValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e SecretTraitValidationError) ErrorName() string { return "SecretTraitValidationError" }
+
+// Error satisfies the builtin error interface
+func (e SecretTraitValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sSecretTrait.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = SecretTraitValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = SecretTraitValidationError{}
 
 // Validate checks the field values on UserTrait_Email with the rules defined
 // in the proto definition for this message. If any rules are violated, the
@@ -897,7 +1768,7 @@ type UserTrait_EmailMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UserTrait_EmailMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1023,7 +1894,7 @@ type UserTrait_StatusMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m UserTrait_StatusMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1086,3 +1957,321 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = UserTrait_StatusValidationError{}
+
+// Validate checks the field values on UserTrait_MFAStatus with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UserTrait_MFAStatus) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserTrait_MFAStatus with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserTrait_MFAStatusMultiError, or nil if none found.
+func (m *UserTrait_MFAStatus) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserTrait_MFAStatus) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for MfaEnabled
+
+	if len(errors) > 0 {
+		return UserTrait_MFAStatusMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserTrait_MFAStatusMultiError is an error wrapping multiple validation
+// errors returned by UserTrait_MFAStatus.ValidateAll() if the designated
+// constraints aren't met.
+type UserTrait_MFAStatusMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserTrait_MFAStatusMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserTrait_MFAStatusMultiError) AllErrors() []error { return m }
+
+// UserTrait_MFAStatusValidationError is the validation error returned by
+// UserTrait_MFAStatus.Validate if the designated constraints aren't met.
+type UserTrait_MFAStatusValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserTrait_MFAStatusValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserTrait_MFAStatusValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserTrait_MFAStatusValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserTrait_MFAStatusValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserTrait_MFAStatusValidationError) ErrorName() string {
+	return "UserTrait_MFAStatusValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserTrait_MFAStatusValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserTrait_MFAStatus.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserTrait_MFAStatusValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserTrait_MFAStatusValidationError{}
+
+// Validate checks the field values on UserTrait_SSOStatus with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UserTrait_SSOStatus) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserTrait_SSOStatus with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserTrait_SSOStatusMultiError, or nil if none found.
+func (m *UserTrait_SSOStatus) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserTrait_SSOStatus) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for SsoEnabled
+
+	if len(errors) > 0 {
+		return UserTrait_SSOStatusMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserTrait_SSOStatusMultiError is an error wrapping multiple validation
+// errors returned by UserTrait_SSOStatus.ValidateAll() if the designated
+// constraints aren't met.
+type UserTrait_SSOStatusMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserTrait_SSOStatusMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserTrait_SSOStatusMultiError) AllErrors() []error { return m }
+
+// UserTrait_SSOStatusValidationError is the validation error returned by
+// UserTrait_SSOStatus.Validate if the designated constraints aren't met.
+type UserTrait_SSOStatusValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserTrait_SSOStatusValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserTrait_SSOStatusValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserTrait_SSOStatusValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserTrait_SSOStatusValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserTrait_SSOStatusValidationError) ErrorName() string {
+	return "UserTrait_SSOStatusValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserTrait_SSOStatusValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserTrait_SSOStatus.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserTrait_SSOStatusValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserTrait_SSOStatusValidationError{}
+
+// Validate checks the field values on UserTrait_StructuredName with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *UserTrait_StructuredName) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on UserTrait_StructuredName with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// UserTrait_StructuredNameMultiError, or nil if none found.
+func (m *UserTrait_StructuredName) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *UserTrait_StructuredName) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for GivenName
+
+	// no validation rules for FamilyName
+
+	// no validation rules for Prefix
+
+	// no validation rules for Suffix
+
+	if len(errors) > 0 {
+		return UserTrait_StructuredNameMultiError(errors)
+	}
+
+	return nil
+}
+
+// UserTrait_StructuredNameMultiError is an error wrapping multiple validation
+// errors returned by UserTrait_StructuredName.ValidateAll() if the designated
+// constraints aren't met.
+type UserTrait_StructuredNameMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m UserTrait_StructuredNameMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m UserTrait_StructuredNameMultiError) AllErrors() []error { return m }
+
+// UserTrait_StructuredNameValidationError is the validation error returned by
+// UserTrait_StructuredName.Validate if the designated constraints aren't met.
+type UserTrait_StructuredNameValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UserTrait_StructuredNameValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UserTrait_StructuredNameValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UserTrait_StructuredNameValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UserTrait_StructuredNameValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UserTrait_StructuredNameValidationError) ErrorName() string {
+	return "UserTrait_StructuredNameValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UserTrait_StructuredNameValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUserTrait_StructuredName.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UserTrait_StructuredNameValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UserTrait_StructuredNameValidationError{}

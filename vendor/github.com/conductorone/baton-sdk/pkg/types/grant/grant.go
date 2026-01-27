@@ -17,6 +17,9 @@ type GrantPrincipal interface {
 	GetBatonResource() bool
 }
 
+// Sometimes C1 doesn't have the grant ID, but does have the principal and entitlement.
+const UnknownGrantId string = "🧸_UNKNOWN_GRANT_ID"
+
 func WithGrantMetadata(metadata map[string]interface{}) GrantOption {
 	return func(g *v2.Grant) error {
 		md, err := structpb.NewStruct(metadata)
@@ -24,21 +27,30 @@ func WithGrantMetadata(metadata map[string]interface{}) GrantOption {
 			return err
 		}
 
-		annos := annotations.Annotations(g.Annotations)
-		annos.Update(md)
-		g.Annotations = annos
+		meta := v2.GrantMetadata_builder{Metadata: md}.Build()
+		annos := annotations.Annotations(g.GetAnnotations())
+		annos.Update(meta)
+		g.SetAnnotations(annos)
 
+		return nil
+	}
+}
+
+// WithExternalPrincipalID: Deprecated. This field is no longer used.
+func WithExternalPrincipalID(externalID *v2.ExternalId) GrantOption {
+	return func(g *v2.Grant) error {
+		g.GetPrincipal().SetExternalId(externalID) //nolint:staticcheck // Deprecated.
 		return nil
 	}
 }
 
 func WithAnnotation(msgs ...proto.Message) GrantOption {
 	return func(g *v2.Grant) error {
-		annos := annotations.Annotations(g.Annotations)
+		annos := annotations.Annotations(g.GetAnnotations())
 		for _, msg := range msgs {
 			annos.Append(msg)
 		}
-		g.Annotations = annos
+		g.SetAnnotations(annos)
 
 		return nil
 	}
@@ -46,23 +58,23 @@ func WithAnnotation(msgs ...proto.Message) GrantOption {
 
 // NewGrant returns a new grant for the given entitlement on the resource for the provided principal resource ID.
 func NewGrant(resource *v2.Resource, entitlementName string, principal GrantPrincipal, grantOptions ...GrantOption) *v2.Grant {
-	entitlement := &v2.Entitlement{
+	entitlement := v2.Entitlement_builder{
 		Id:       eopt.NewEntitlementID(resource, entitlementName),
 		Resource: resource,
-	}
+	}.Build()
 
-	grant := &v2.Grant{
+	grant := v2.Grant_builder{
 		Entitlement: entitlement,
-	}
+	}.Build()
 
 	var resourceID *v2.ResourceId
 	switch p := principal.(type) {
 	case *v2.ResourceId:
 		resourceID = p
-		grant.Principal = &v2.Resource{Id: p}
+		grant.SetPrincipal(v2.Resource_builder{Id: p}.Build())
 	case *v2.Resource:
-		grant.Principal = p
-		resourceID = p.Id
+		grant.SetPrincipal(p)
+		resourceID = p.GetId()
 	default:
 		panic("unexpected principal type")
 	}
@@ -70,7 +82,7 @@ func NewGrant(resource *v2.Resource, entitlementName string, principal GrantPrin
 	if resourceID == nil {
 		panic("principal resource must have a valid resource ID")
 	}
-	grant.Id = fmt.Sprintf("%s:%s:%s", entitlement.Id, resourceID.ResourceType, resourceID.Resource)
+	grant.SetId(fmt.Sprintf("%s:%s:%s", entitlement.GetId(), resourceID.GetResourceType(), resourceID.GetResource()))
 
 	for _, grantOption := range grantOptions {
 		err := grantOption(grant)
@@ -80,4 +92,21 @@ func NewGrant(resource *v2.Resource, entitlementName string, principal GrantPrin
 	}
 
 	return grant
+}
+
+func NewGrantID(principal GrantPrincipal, entitlement *v2.Entitlement) string {
+	var resourceID *v2.ResourceId
+	switch p := principal.(type) {
+	case *v2.ResourceId:
+		resourceID = p
+	case *v2.Resource:
+		resourceID = p.GetId()
+	default:
+		panic("unexpected principal type")
+	}
+
+	if resourceID == nil {
+		panic("principal resource must have a valid resource ID")
+	}
+	return fmt.Sprintf("%s:%s:%s", entitlement.GetId(), resourceID.GetResourceType(), resourceID.GetResource())
 }

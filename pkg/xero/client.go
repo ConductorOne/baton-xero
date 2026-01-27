@@ -168,7 +168,7 @@ func (c *Client) doRequest(
 	defer rawResponse.Body.Close()
 
 	if rawResponse.StatusCode >= 300 {
-		return status.Error(codes.Code(rawResponse.StatusCode), "Request failed")
+		return status.Error(codes.Code(uint32(rawResponse.StatusCode)), "Request failed") //nolint:gosec // HTTP status codes are always positive and fit in uint32
 	}
 
 	if err := json.NewDecoder(rawResponse.Body).Decode(resourceResponse); err != nil {
