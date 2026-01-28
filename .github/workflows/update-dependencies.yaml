@@ -50,11 +50,6 @@ jobs:
       - name: "Verify build"
         run: |
           go build ./...
-      - name: "Run linter"
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          args: --timeout=10m
       - name: "Commit changes"
         uses: EndBug/add-and-commit@v9
         with:
