@@ -116,7 +116,7 @@ type GrantSourcesMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantSourcesMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -368,7 +368,7 @@ type GrantMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -511,10 +511,10 @@ func (m *GrantsServiceListGrantsRequest) validate(all bool) error {
 
 	if m.GetPageToken() != "" {
 
-		if l := len(m.GetPageToken()); l < 1 || l > 4096 {
+		if l := len(m.GetPageToken()); l < 1 || l > 1048576 {
 			err := GrantsServiceListGrantsRequestValidationError{
 				field:  "PageToken",
-				reason: "value length must be between 1 and 4096 bytes, inclusive",
+				reason: "value length must be between 1 and 1048576 bytes, inclusive",
 			}
 			if !all {
 				return err
@@ -558,6 +558,21 @@ func (m *GrantsServiceListGrantsRequest) validate(all bool) error {
 
 	}
 
+	if m.GetActiveSyncId() != "" {
+
+		if l := len(m.GetActiveSyncId()); l < 1 || l > 1024 {
+			err := GrantsServiceListGrantsRequestValidationError{
+				field:  "ActiveSyncId",
+				reason: "value length must be between 1 and 1024 bytes, inclusive",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+	}
+
 	if len(errors) > 0 {
 		return GrantsServiceListGrantsRequestMultiError(errors)
 	}
@@ -572,7 +587,7 @@ type GrantsServiceListGrantsRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantsServiceListGrantsRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -697,10 +712,10 @@ func (m *GrantsServiceListGrantsResponse) validate(all bool) error {
 
 	if m.GetNextPageToken() != "" {
 
-		if l := len(m.GetNextPageToken()); l < 1 || l > 4096 {
+		if l := len(m.GetNextPageToken()); l < 1 || l > 1048576 {
 			err := GrantsServiceListGrantsResponseValidationError{
 				field:  "NextPageToken",
-				reason: "value length must be between 1 and 4096 bytes, inclusive",
+				reason: "value length must be between 1 and 1048576 bytes, inclusive",
 			}
 			if !all {
 				return err
@@ -758,7 +773,7 @@ type GrantsServiceListGrantsResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantsServiceListGrantsResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -975,7 +990,7 @@ type GrantManagerServiceGrantRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantManagerServiceGrantRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1099,6 +1114,40 @@ func (m *GrantManagerServiceGrantResponse) validate(all bool) error {
 
 	}
 
+	for idx, item := range m.GetGrants() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, GrantManagerServiceGrantResponseValidationError{
+						field:  fmt.Sprintf("Grants[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, GrantManagerServiceGrantResponseValidationError{
+						field:  fmt.Sprintf("Grants[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GrantManagerServiceGrantResponseValidationError{
+					field:  fmt.Sprintf("Grants[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
 	if len(errors) > 0 {
 		return GrantManagerServiceGrantResponseMultiError(errors)
 	}
@@ -1114,7 +1163,7 @@ type GrantManagerServiceGrantResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantManagerServiceGrantResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1293,7 +1342,7 @@ type GrantManagerServiceRevokeRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantManagerServiceRevokeRequestMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1432,7 +1481,7 @@ type GrantManagerServiceRevokeResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantManagerServiceRevokeResponseMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}
@@ -1535,7 +1584,7 @@ type GrantSources_GrantSourceMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
 func (m GrantSources_GrantSourceMultiError) Error() string {
-	var msgs []string
+	msgs := make([]string, 0, len(m))
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
 	}

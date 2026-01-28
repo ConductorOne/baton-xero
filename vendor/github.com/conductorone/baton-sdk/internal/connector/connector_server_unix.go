@@ -14,6 +14,11 @@ import (
 	"go.uber.org/zap"
 )
 
+func getPort(listener net.Listener) uint32 {
+	//nolint:gosec // No risk of overflow because `Port` is 16-bit.
+	return uint32(listener.Addr().(*net.TCPAddr).Port)
+}
+
 func (cw *wrapper) setupListener(ctx context.Context) (uint32, *os.File, error) {
 	l := ctxzap.Extract(ctx)
 
@@ -25,7 +30,7 @@ func (cw *wrapper) setupListener(ctx context.Context) (uint32, *os.File, error) 
 	if err != nil {
 		return 0, nil, err
 	}
-	listenPort := uint32(listener.Addr().(*net.TCPAddr).Port)
+	listenPort := getPort(listener)
 	listenerFile, err := listener.File()
 	if err != nil {
 		return 0, nil, err
@@ -39,7 +44,7 @@ func (cw *wrapper) setupListener(ctx context.Context) (uint32, *os.File, error) 
 func (cw *wrapper) getListener(ctx context.Context, serverCfg *connectorwrapperV1.ServerConfig) (net.Listener, error) {
 	l := ctxzap.Extract(ctx)
 
-	l.Debug("starting listener with fd", zap.Uint32("expected_listen_port", serverCfg.ListenPort))
+	l.Debug("starting listener with fd", zap.Uint32("expected_listen_port", serverCfg.GetListenPort()))
 
 	listenerFd := os.Getenv(listenerFdEnv)
 	if listenerFd == "" {
@@ -58,9 +63,9 @@ func (cw *wrapper) getListener(ctx context.Context, serverCfg *connectorwrapperV
 		return nil, err
 	}
 
-	listenPort := uint32(listener.Addr().(*net.TCPAddr).Port)
-	if listenPort != serverCfg.ListenPort {
-		return nil, fmt.Errorf("listen port mismatch: %d != %d", listenPort, serverCfg.ListenPort)
+	listenPort := getPort(listener)
+	if listenPort != serverCfg.GetListenPort() {
+		return nil, fmt.Errorf("listen port mismatch: %d != %d", listenPort, serverCfg.GetListenPort())
 	}
 
 	l.Debug("listener started", zap.Uint32("listen_port", listenPort))

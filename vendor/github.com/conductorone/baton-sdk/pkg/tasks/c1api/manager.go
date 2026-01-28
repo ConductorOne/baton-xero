@@ -6,6 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
@@ -14,9 +18,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	v1 "github.com/conductorone/baton-sdk/pb/c1/connectorapi/baton/v1"
 	"github.com/conductorone/baton-sdk/pkg/tasks"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	taskTypes "github.com/conductorone/baton-sdk/pkg/types/tasks"
 )
 
 var (
@@ -38,11 +44,17 @@ var (
 )
 
 type c1ApiTaskManager struct {
-	mtx           sync.Mutex
-	started       bool
-	queue         []*v1.Task
-	serviceClient BatonServiceClient
-	tempDir       string
+	mtx                                 sync.Mutex
+	started                             bool
+	queue                               []*v1.Task
+	serviceClient                       BatonServiceClient
+	tempDir                             string
+	skipFullSync                        bool
+	runnerShouldDebug                   bool
+	externalResourceC1Z                 string
+	externalResourceEntitlementIdFilter string
+	targetedSyncResources               []*v2.Resource
+	syncResourceTypeIDs                 []string
 }
 
 // getHeartbeatInterval returns an appropriate heartbeat interval. If the interval is 0, it will return the default heartbeat interval.
@@ -73,6 +85,9 @@ func getNextPoll(d time.Duration) time.Duration {
 }
 
 func (c *c1ApiTaskManager) Next(ctx context.Context) (*v1.Task, time.Duration, error) {
+	ctx, span := tracer.Start(ctx, "c1ApiTaskManager.Next", trace.WithNewRoot())
+	defer span.End()
+
 	l := ctxzap.Extract(ctx)
 
 	c.mtx.Lock()
@@ -81,13 +96,11 @@ func (c *c1ApiTaskManager) Next(ctx context.Context) (*v1.Task, time.Duration, e
 		l.Debug("c1_api_task_manager.Next(): queueing initial hello task")
 		c.started = true
 		// Append a hello task to the queue on startup.
-		c.queue = append(c.queue, &v1.Task{
+		c.queue = append(c.queue, v1.Task_builder{
 			Id:     "",
 			Status: v1.Task_STATUS_PENDING,
-			TaskType: &v1.Task_Hello{
-				Hello: &v1.Task_HelloTask{},
-			},
-		})
+			Hello:  &v1.Task_HelloTask{},
+		}.Build())
 
 		// TODO(morgabra) Get resumable tasks here and queue them.
 	}
@@ -109,7 +122,7 @@ func (c *c1ApiTaskManager) Next(ctx context.Context) (*v1.Task, time.Duration, e
 	nextPoll := getNextPoll(resp.GetNextPoll().AsDuration())
 	l = l.With(zap.Duration("next_poll", nextPoll))
 
-	if resp.GetTask() == nil || tasks.Is(resp.GetTask(), tasks.NoneType) {
+	if resp.GetTask() == nil || tasks.Is(resp.GetTask(), taskTypes.NoneType) {
 		l.Debug("c1_api_task_manager.Next(): no tasks available")
 		return nil, nextPoll, nil
 	}
@@ -119,11 +132,14 @@ func (c *c1ApiTaskManager) Next(ctx context.Context) (*v1.Task, time.Duration, e
 		zap.Stringer("task_type", tasks.GetType(resp.GetTask())),
 	)
 
-	l.Debug("c1_api_task_manager.Next(): got task")
+	l.Debug("c1_api_task_manager.Next(): got task", zap.Duration("next_poll", nextPoll))
 	return resp.GetTask(), nextPoll, nil
 }
 
-func (c *c1ApiTaskManager) finishTask(ctx context.Context, task *v1.Task, annos annotations.Annotations, err error) error {
+func (c *c1ApiTaskManager) finishTask(ctx context.Context, task *v1.Task, resp proto.Message, annos annotations.Annotations, err error) error {
+	ctx, span := tracer.Start(ctx, "c1ApiTaskManager.finishTask")
+	defer span.End()
+
 	l := ctxzap.Extract(ctx)
 	l = l.With(
 		zap.String("task_id", task.GetId()),
@@ -133,17 +149,26 @@ func (c *c1ApiTaskManager) finishTask(ctx context.Context, task *v1.Task, annos 
 	finishCtx, finishCanc := context.WithTimeout(context.Background(), time.Second*30)
 	defer finishCanc()
 
+	var err2 error
+	var marshalledResp *anypb.Any
+	if resp != nil {
+		marshalledResp, err2 = anypb.New(resp)
+		if err2 != nil {
+			l.Error("c1_api_task_manager.finishTask(): error while attempting to marshal response", zap.Error(err2))
+			return err2
+		}
+	}
+
 	if err == nil {
 		l.Info("c1_api_task_manager.finishTask(): finishing task successfully")
-		_, err = c.serviceClient.FinishTask(finishCtx, &v1.BatonServiceFinishTaskRequest{
+		_, err = c.serviceClient.FinishTask(finishCtx, v1.BatonServiceFinishTaskRequest_builder{
 			TaskId: task.GetId(),
 			Status: nil,
-			FinalState: &v1.BatonServiceFinishTaskRequest_Success_{
-				Success: &v1.BatonServiceFinishTaskRequest_Success{
-					Annotations: annos,
-				},
-			},
-		})
+			Success: v1.BatonServiceFinishTaskRequest_Success_builder{
+				Annotations: annos,
+				Response:    marshalledResp,
+			}.Build(),
+		}.Build())
 		if err != nil {
 			l.Error("c1_api_task_manager.finishTask(): error while attempting to finish task successfully", zap.Error(err))
 			return err
@@ -159,19 +184,18 @@ func (c *c1ApiTaskManager) finishTask(ctx context.Context, task *v1.Task, annos 
 		statusErr = status.New(codes.Unknown, err.Error())
 	}
 
-	_, rpcErr := c.serviceClient.FinishTask(finishCtx, &v1.BatonServiceFinishTaskRequest{
+	_, rpcErr := c.serviceClient.FinishTask(finishCtx, v1.BatonServiceFinishTaskRequest_builder{
 		TaskId: task.GetId(),
 		Status: &pbstatus.Status{
+			//nolint:gosec // No risk of overflow because `Code` is a small enum.
 			Code:    int32(statusErr.Code()),
 			Message: statusErr.Message(),
 		},
-		FinalState: &v1.BatonServiceFinishTaskRequest_Error_{
-			Error: &v1.BatonServiceFinishTaskRequest_Error{
-				NonRetryable: errors.Is(err, ErrTaskNonRetryable),
-				Annotations:  annos,
-			},
-		},
-	})
+		Error: v1.BatonServiceFinishTaskRequest_Error_builder{
+			NonRetryable: errors.Is(err, ErrTaskNonRetryable),
+			Annotations:  annos,
+		}.Build(),
+	}.Build())
 	if rpcErr != nil {
 		l.Error("c1_api_task_manager.finishTask(): error finishing task", zap.Error(rpcErr))
 		return errors.Join(err, rpcErr)
@@ -180,7 +204,18 @@ func (c *c1ApiTaskManager) finishTask(ctx context.Context, task *v1.Task, annos 
 	return err
 }
 
+func (c *c1ApiTaskManager) GetTempDir() string {
+	return c.tempDir
+}
+
+func (c *c1ApiTaskManager) ShouldDebug() bool {
+	return c.runnerShouldDebug
+}
+
 func (c *c1ApiTaskManager) Process(ctx context.Context, task *v1.Task, cc types.ConnectorClient) error {
+	ctx, span := tracer.Start(ctx, "c1ApiTaskManager.Process", trace.WithNewRoot())
+	defer span.End()
+
 	l := ctxzap.Extract(ctx)
 	if task == nil {
 		l.Debug("c1_api_task_manager.Process(): process called with nil task -- continuing")
@@ -207,20 +242,52 @@ func (c *c1ApiTaskManager) Process(ctx context.Context, task *v1.Task, cc types.
 	// Handlers may do their work in a goroutine allowing processing to move onto the next task
 	var handler tasks.TaskHandler
 	switch tasks.GetType(task) {
-	case tasks.FullSyncType:
-		handler = newFullSyncTaskHandler(task, tHelpers)
-
-	case tasks.HelloType:
+	case taskTypes.FullSyncType:
+		handler = newFullSyncTaskHandler(
+			task,
+			tHelpers,
+			c.skipFullSync,
+			c.externalResourceC1Z,
+			c.externalResourceEntitlementIdFilter,
+			c.targetedSyncResources,
+			c.syncResourceTypeIDs,
+		)
+	case taskTypes.HelloType:
 		handler = newHelloTaskHandler(task, tHelpers)
-
-	case tasks.GrantType:
+	case taskTypes.GrantType:
 		handler = newGrantTaskHandler(task, tHelpers)
-
-	case tasks.RevokeType:
+	case taskTypes.RevokeType:
 		handler = newRevokeTaskHandler(task, tHelpers)
-
+	case taskTypes.CreateAccountType:
+		handler = newCreateAccountTaskHandler(task, tHelpers)
+	case taskTypes.CreateResourceType:
+		handler = newCreateResourceTaskHandler(task, tHelpers)
+	case taskTypes.DeleteResourceType:
+		handler = newDeleteResourceTaskHandler(task, tHelpers)
+	case taskTypes.RotateCredentialsType:
+		handler = newRotateCredentialsTaskHandler(task, tHelpers)
+	case taskTypes.CreateTicketType:
+		handler = newCreateTicketTaskHandler(task, tHelpers)
+	case taskTypes.ListTicketSchemasType:
+		handler = newListSchemasTaskHandler(task, tHelpers)
+	case taskTypes.GetTicketType:
+		handler = newGetTicketTaskHandler(task, tHelpers)
+	case taskTypes.StartDebugging:
+		handler = newStartDebugging(c)
+	case taskTypes.BulkCreateTicketsType:
+		handler = newBulkCreateTicketTaskHandler(task, tHelpers)
+	case taskTypes.BulkGetTicketsType:
+		handler = newBulkGetTicketTaskHandler(task, tHelpers)
+	case taskTypes.ActionListSchemasType:
+		handler = newActionListSchemasTaskHandler(task, tHelpers)
+	case taskTypes.ActionGetSchemaType:
+		handler = newActionGetSchemaTaskHandler(task, tHelpers)
+	case taskTypes.ActionInvokeType:
+		handler = newActionInvokeTaskHandler(task, tHelpers)
+	case taskTypes.ActionStatusType:
+		handler = newActionStatusTaskHandler(task, tHelpers)
 	default:
-		return c.finishTask(ctx, task, nil, errors.New("unsupported task type"))
+		return c.finishTask(ctx, task, nil, nil, errors.New("unsupported task type"))
 	}
 
 	err := handler.HandleTask(ctx)
@@ -232,14 +299,23 @@ func (c *c1ApiTaskManager) Process(ctx context.Context, task *v1.Task, cc types.
 	return nil
 }
 
-func NewC1TaskManager(ctx context.Context, clientID string, clientSecret string, tempDir string) (tasks.Manager, error) {
+func NewC1TaskManager(
+	ctx context.Context, clientID string, clientSecret string, tempDir string, skipFullSync bool,
+	externalC1Z string, externalResourceEntitlementIdFilter string, targetedSyncResources []*v2.Resource,
+	syncResourceTypeIDs []string,
+) (tasks.Manager, error) {
 	serviceClient, err := newServiceClient(ctx, clientID, clientSecret)
 	if err != nil {
 		return nil, err
 	}
 
 	return &c1ApiTaskManager{
-		serviceClient: serviceClient,
-		tempDir:       tempDir,
+		serviceClient:                       serviceClient,
+		tempDir:                             tempDir,
+		skipFullSync:                        skipFullSync,
+		externalResourceC1Z:                 externalC1Z,
+		externalResourceEntitlementIdFilter: externalResourceEntitlementIdFilter,
+		targetedSyncResources:               targetedSyncResources,
+		syncResourceTypeIDs:                 syncResourceTypeIDs,
 	}, nil
 }
