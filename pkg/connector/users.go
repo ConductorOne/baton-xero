@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/annotations"
-	"github.com/conductorone/baton-sdk/pkg/pagination"
-	"github.com/conductorone/baton-sdk/pkg/types/resource"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-xero/pkg/xero"
 )
 
@@ -21,20 +19,20 @@ func (u *userResourceType) ResourceType(_ context.Context) *v2.ResourceType {
 }
 
 // Create a new connector resource for a Xero User.
-func userResource(ctx context.Context, user *xero.User) (*v2.Resource, error) {
+func userResource(user *xero.User) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"user_id": user.Id,
 	}
 
-	resource, err := resource.NewUserResource(
+	resource, err := rs.NewUserResource(
 		user.Email,
 		resourceTypeUser,
 		user.Id,
-		[]resource.UserTraitOption{
-			resource.WithEmail(user.Email, true),
-			resource.WithUserProfile(profile),
-			resource.WithStatus(v2.UserTrait_Status_STATUS_ENABLED),
-			resource.WithUserLogin(user.Email),
+		[]rs.UserTraitOption{
+			rs.WithEmail(user.Email, true),
+			rs.WithUserProfile(profile),
+			rs.WithStatus(v2.UserTrait_Status_STATUS_ENABLED),
+			rs.WithUserLogin(user.Email),
 		},
 	)
 	if err != nil {
@@ -44,33 +42,33 @@ func userResource(ctx context.Context, user *xero.User) (*v2.Resource, error) {
 	return resource, nil
 }
 
-func (u *userResourceType) List(ctx context.Context, _ *v2.ResourceId, _ *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (u *userResourceType) List(ctx context.Context, _ *v2.ResourceId, opts rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	users, err := u.client.GetUsers(ctx, "")
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("xero-connector: failed to list users: %w", err)
+		return nil, nil, fmt.Errorf("xero-connector: failed to list users: %w", err)
 	}
 
 	var rv []*v2.Resource
 	for _, user := range users {
 		userCopy := user
 
-		ur, err := userResource(ctx, &userCopy)
+		ur, err := userResource(&userCopy)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, nil, err
 		}
 
 		rv = append(rv, ur)
 	}
 
-	return rv, "", nil, nil
+	return rv, nil, nil
 }
 
-func (u *userResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (u *userResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
-func (u *userResourceType) Grants(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (u *userResourceType) Grants(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
 func userBuilder(client *xero.Client) *userResourceType {

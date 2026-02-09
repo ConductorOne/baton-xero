@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/annotations"
-	"github.com/conductorone/baton-sdk/pkg/pagination"
-	"github.com/conductorone/baton-sdk/pkg/types/resource"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-xero/pkg/xero"
 )
 
@@ -21,8 +19,8 @@ func (o *orgResourceType) ResourceType(_ context.Context) *v2.ResourceType {
 }
 
 // Create a new connector resource for a Xero Organization.
-func orgResource(ctx context.Context, org *xero.Organization) (*v2.Resource, error) {
-	resource, err := resource.NewResource(
+func orgResource(org *xero.Organization) (*v2.Resource, error) {
+	resource, err := rs.NewResource(
 		org.Name,
 		resourceTypeOrg,
 		org.Id,
@@ -34,33 +32,33 @@ func orgResource(ctx context.Context, org *xero.Organization) (*v2.Resource, err
 	return resource, nil
 }
 
-func (o *orgResourceType) List(ctx context.Context, _ *v2.ResourceId, _ *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (o *orgResourceType) List(ctx context.Context, _ *v2.ResourceId, _ rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	orgs, err := o.client.GetOrganizations(ctx)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("xero-connector: failed to list orgs: %w", err)
+		return nil, nil, fmt.Errorf("xero-connector: failed to list orgs: %w", err)
 	}
 
 	var rv []*v2.Resource
 	for _, org := range orgs {
 		orgCopy := org
 
-		or, err := orgResource(ctx, &orgCopy)
+		or, err := orgResource(&orgCopy)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, nil, err
 		}
 
 		rv = append(rv, or)
 	}
 
-	return rv, "", nil, nil
+	return rv, nil, nil
 }
 
-func (o *orgResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (o *orgResourceType) Entitlements(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
-func (o *orgResourceType) Grants(_ context.Context, _ *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+func (o *orgResourceType) Grants(_ context.Context, _ *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
+	return nil, nil, nil
 }
 
 func orgBuilder(client *xero.Client) *orgResourceType {

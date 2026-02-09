@@ -6,8 +6,10 @@ import (
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/cli"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
+	cfg "github.com/conductorone/baton-xero/pkg/config"
 	"github.com/conductorone/baton-xero/pkg/xero"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"google.golang.org/grpc/codes"
@@ -18,8 +20,8 @@ type Xero struct {
 	client *xero.Client
 }
 
-func (x *Xero) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncer {
-	return []connectorbuilder.ResourceSyncer{
+func (x *Xero) ResourceSyncers(ctx context.Context) []connectorbuilder.ResourceSyncerV2 {
+	return []connectorbuilder.ResourceSyncerV2{
 		orgBuilder(x.client),
 		userBuilder(x.client),
 		roleBuilder(x.client),
@@ -46,20 +48,20 @@ func (x *Xero) Validate(ctx context.Context) (annotations.Annotations, error) {
 }
 
 // New returns the Xero connector.
-func New(ctx context.Context, clientId, clientSecret, token, refreshToken string) (*Xero, error) {
+func New(ctx context.Context, cfgs *cfg.Xero, opts *cli.ConnectorOpts) (connectorbuilder.ConnectorBuilderV2, []connectorbuilder.Opt, error) {
 	httpClient, err := uhttp.NewClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	client, err := xero.NewClient(
 		ctx,
 		httpClient,
-		xero.NewAuth(token, refreshToken, clientId, clientSecret),
+		xero.NewAuth(cfgs.Token, cfgs.RefreshToken, cfgs.XeroClientId, cfgs.XeroClientSecret),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create client: %w", err)
 	}
 
-	return &Xero{client}, nil
+	return &Xero{client}, nil, nil
 }

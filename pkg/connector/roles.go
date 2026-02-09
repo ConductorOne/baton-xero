@@ -6,11 +6,9 @@ import (
 	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/annotations"
-	"github.com/conductorone/baton-sdk/pkg/pagination"
 	ent "github.com/conductorone/baton-sdk/pkg/types/entitlement"
 	"github.com/conductorone/baton-sdk/pkg/types/grant"
-	"github.com/conductorone/baton-sdk/pkg/types/resource"
+	rs "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-xero/pkg/xero"
 )
 
@@ -35,19 +33,19 @@ func (r *roleResourceType) ResourceType(_ context.Context) *v2.ResourceType {
 }
 
 // Create a new connector resource for a Xero Role.
-func roleResource(ctx context.Context, role string) (*v2.Resource, error) {
+func roleResource(role string) (*v2.Resource, error) {
 	displayName := titleCase(role)
 
 	profile := map[string]interface{}{
 		"role_name": role,
 	}
 
-	resource, err := resource.NewRoleResource(
+	resource, err := rs.NewRoleResource(
 		displayName,
 		resourceTypeRole,
 		role,
-		[]resource.RoleTraitOption{
-			resource.WithRoleProfile(profile),
+		[]rs.RoleTraitOption{
+			rs.WithRoleProfile(profile),
 		},
 	)
 	if err != nil {
@@ -57,21 +55,21 @@ func roleResource(ctx context.Context, role string) (*v2.Resource, error) {
 	return resource, nil
 }
 
-func (r *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, _ *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (r *roleResourceType) List(ctx context.Context, _ *v2.ResourceId, _ rs.SyncOpAttrs) ([]*v2.Resource, *rs.SyncOpResults, error) {
 	var rv []*v2.Resource
 	for _, r := range roles {
-		rr, err := roleResource(ctx, r)
+		rr, err := roleResource(r)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, nil, err
 		}
 
 		rv = append(rv, rr)
 	}
 
-	return rv, "", nil, nil
+	return rv, nil, nil
 }
 
-func (r *roleResourceType) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
+func (r *roleResourceType) Entitlements(_ context.Context, resource *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Entitlement, *rs.SyncOpResults, error) {
 	var rv []*v2.Entitlement
 
 	assignmentOptions := []ent.EntitlementOption{
@@ -82,13 +80,13 @@ func (r *roleResourceType) Entitlements(_ context.Context, resource *v2.Resource
 
 	rv = append(rv, ent.NewAssignmentEntitlement(resource, resource.Id.Resource, assignmentOptions...))
 
-	return rv, "", nil, nil
+	return rv, nil, nil
 }
 
-func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, _ rs.SyncOpAttrs) ([]*v2.Grant, *rs.SyncOpResults, error) {
 	users, err := r.client.GetUsers(ctx, strings.ToUpper(resource.Id.Resource))
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("xero-connector: failed to list users with role %s: %w", resource.DisplayName, err)
+		return nil, nil, fmt.Errorf("xero-connector: failed to list users with role %s: %w", resource.DisplayName, err)
 	}
 
 	var rv []*v2.Grant
@@ -103,7 +101,7 @@ func (r *roleResourceType) Grants(ctx context.Context, resource *v2.Resource, _ 
 		))
 	}
 
-	return rv, "", nil, nil
+	return rv, nil, nil
 }
 
 func roleBuilder(client *xero.Client) *roleResourceType {
