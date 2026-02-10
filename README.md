@@ -1,8 +1,8 @@
 ![Baton Logo](./docs/images/baton-logo.png)
 
-# `baton-xero` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-xero.svg)](https://pkg.go.dev/github.com/conductorone/baton-xero) ![main ci](https://github.com/conductorone/baton-xero/actions/workflows/main.yaml/badge.svg)
+# `baton-xero` [![Go Reference](https://pkg.go.dev/badge/github.com/conductorone/baton-xero.svg)](https://pkg.go.dev/github.com/conductorone/baton-xero) ![verify](https://github.com/conductorone/baton-xero/actions/workflows/verify.yaml/badge.svg)
 
-`baton-xero` is a connector for Xero built using the [Baton SDK](https://github.com/conductorone/baton-sdk). It communicates with the Xero Accounting API to sync data about organizations and their members. 
+`baton-xero` is a connector for Xero built using the [Baton SDK](https://github.com/conductorone/baton-sdk). It communicates with the Xero Accounting API to sync data about organizations and their members.
 
 Check out [Baton](https://github.com/conductorone/baton) to learn more about the project in general.
 
@@ -10,11 +10,11 @@ Check out [Baton](https://github.com/conductorone/baton) to learn more about the
 
 To run the connector, you will need to create a Xero App that ensures the connection to the API, and obtain a client ID and client secret from it.
 
-There are three types of apps that you can create and their authentication flow differs. The connector supports the [Client Credentials Flow](https://developer.xero.com/documentation/guides/oauth2/client-credentials) and [Refresh Token Flow](https://developer.xero.com/documentation/guides/oauth2/auth-flow/#refreshing-access-and-refresh-tokens). 
+There are three types of apps that you can create and their authentication flow differs. The connector supports the [Client Credentials Flow](https://developer.xero.com/documentation/guides/oauth2/client-credentials) and [Refresh Token Flow](https://developer.xero.com/documentation/guides/oauth2/auth-flow/#refreshing-access-and-refresh-tokens).
 
 To use the Client Credentials Flow, you will need to create an app of type ["Custom connection"](https://developer.xero.com/documentation/guides/oauth2/custom-connections) and use the connector with client ID and client secret. There are multiple other prerequisities for this flow, so please read the documentation carefully.
 
-To use the Refresh Token Flow, you will need to create an app of type "Web app" and use the connector with client ID, client secret and refresh token. This flow is part of the [OAuth 2.0 Authorization Code Flow](https://developer.xero.com/documentation/guides/oauth2/auth-flow) and it requires user interaction to obtain the refresh token. This refresh token, based on documentation, is valid for 60 days unless it is refreshed. 
+To use the Refresh Token Flow, you will need to create an app of type "Web app" and use the connector with client ID, client secret and refresh token. This flow is part of the [OAuth 2.0 Authorization Code Flow](https://developer.xero.com/documentation/guides/oauth2/auth-flow) and it requires user interaction to obtain the refresh token. This refresh token, based on documentation, is valid for 60 days unless it is refreshed.
 
 # Getting Started
 
