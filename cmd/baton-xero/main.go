@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/conductorone/baton-sdk/pkg/config"
+	"github.com/conductorone/baton-sdk/pkg/connectorrunner"
 	cfg "github.com/conductorone/baton-xero/pkg/config"
 	"github.com/conductorone/baton-xero/pkg/connector"
 )
@@ -17,5 +18,7 @@ func main() {
 		"baton-xero",
 		version,
 		cfg.Config,
-		connector.New)
+		connector.New,
+		connectorrunner.WithDefaultCapabilitiesConnectorBuilderV2(&connector.Xero{}),
+	)
 }
