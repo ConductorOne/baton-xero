@@ -30,6 +30,12 @@ var (
 		field.WithIsSecret(true),
 		field.WithDisplayName("Xero Client Secret"),
 	)
+	BaseURLField = field.StringField(
+		"base-url",
+		field.WithDescription("Override the Xero API URL (for testing)"),
+		field.WithHidden(true),
+		field.WithExportTarget(field.ExportTargetCLIOnly),
+	)
 )
 
 //go:generate go run ./gen
@@ -38,6 +44,7 @@ var Config = field.NewConfiguration([]field.SchemaField{
 	RefreshToken,
 	XeroClientId,
 	XeroClientSecret,
+	BaseURLField,
 },
 	field.WithConnectorDisplayName("Xero"),
 	field.WithIconUrl("/static/app-icons/xero.svg"),

@@ -35,7 +35,7 @@ type Client struct {
 	tenant       string
 }
 
-func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Client, error) {
+func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth, baseURL ...string) (*Client, error) {
 	// login if token is not present
 	if auth.Token == "" {
 		err := auth.Login(ctx, httpClient)
@@ -50,9 +50,18 @@ func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Clien
 		return nil, fmt.Errorf("failed to get tenant id: %w", err)
 	}
 
+	apiBaseURL := &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint}
+	if len(baseURL) > 0 && baseURL[0] != "" {
+		parsed, err := url.Parse(baseURL[0])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse base URL: %w", err)
+		}
+		apiBaseURL = parsed
+	}
+
 	return &Client{
 		httpClient:   httpClient,
-		baseUrl:      &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint},
+		baseUrl:      apiBaseURL,
 		token:        auth.Token,
 		refreshToken: auth.RefreshToken,
 		tenant:       tenantId,
