@@ -17,9 +17,9 @@ var DefaultScopes = []string{"openid", "email", "profile", "offline_access", "ac
 
 type Auth struct {
 	Token        string
-	RefreshToken string //nolint:gosec // G117: false positive, this is a legitimate OAuth credential field
+	RefreshToken string
 	ClientId     string
-	ClientSecret string //nolint:gosec // G117: false positive, this is a legitimate OAuth credential field
+	ClientSecret string
 }
 
 func NewAuth(token, refreshToken, clientId, clientSecret string) *Auth {
@@ -108,7 +108,7 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth(auth.ClientId, auth.ClientSecret)
 
-	rawResponse, err := httpClient.Do(req) //nolint:gosec // G704: URL is constructed from hardcoded constants, not user input
+	rawResponse, err := httpClient.Do(req)
 	if err != nil {
 		return "", "", err
 	}
@@ -126,7 +126,7 @@ func exchangeToken(ctx context.Context, httpClient *http.Client, data *url.Value
 		if body == "" {
 			body = "no error body"
 		}
-		return "", "", status.Error(codes.Code(uint32(rawResponse.StatusCode)), fmt.Sprintf("Request failed: %s", body)) //nolint:gosec // HTTP status codes are always positive and fit in uint32
+		return "", "", status.Error(codes.Code(uint32(rawResponse.StatusCode)), fmt.Sprintf("Request failed: %s", body))
 	}
 
 	var res TokenResponse
@@ -173,7 +173,7 @@ func getConnections(ctx context.Context, httpClient *http.Client, token string) 
 	req.Header.Set("content-type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	rawResponse, err := httpClient.Do(req) //nolint:gosec // G704: URL is constructed from hardcoded constants, not user input
+	rawResponse, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func getConnections(ctx context.Context, httpClient *http.Client, token string) 
 	defer rawResponse.Body.Close()
 
 	if rawResponse.StatusCode >= 300 {
-		return nil, status.Error(codes.Code(uint32(rawResponse.StatusCode)), "Request failed") //nolint:gosec // HTTP status codes are always positive and fit in uint32
+		return nil, status.Error(codes.Code(uint32(rawResponse.StatusCode)), "Request failed")
 	}
 
 	var res []Connection

@@ -76,8 +76,8 @@ func (c *Client) joinURL(path string) *url.URL {
 }
 
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`  //nolint:gosec // G117: false positive, this is a token response struct field
-	RefreshToken string `json:"refresh_token"` //nolint:gosec // G117: false positive, this is a token response struct field
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type UsersResponse struct {
@@ -169,7 +169,7 @@ func (c *Client) doRequest(
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
 	req.Header.Set("xero-tenant-id", c.tenant)
 
-	rawResponse, err := c.httpClient.Do(req) //nolint:gosec // G704: URL is constructed from hardcoded constants, not user input
+	rawResponse, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
