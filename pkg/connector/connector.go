@@ -58,6 +58,7 @@ func New(ctx context.Context, cfgs *cfg.Xero, opts *cli.ConnectorOpts) (connecto
 		ctx,
 		httpClient,
 		xero.NewAuth(cfgs.Token, cfgs.RefreshToken, cfgs.XeroClientId, cfgs.XeroClientSecret),
+		cfgs.BaseUrl,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create client: %w", err)

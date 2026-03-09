@@ -35,7 +35,7 @@ type Client struct {
 	tenant       string
 }
 
-func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Client, error) {
+func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth, baseURL ...string) (*Client, error) {
 	// login if token is not present
 	if auth.Token == "" {
 		err := auth.Login(ctx, httpClient)
@@ -50,9 +50,18 @@ func NewClient(ctx context.Context, httpClient *http.Client, auth *Auth) (*Clien
 		return nil, fmt.Errorf("failed to get tenant id: %w", err)
 	}
 
+	apiBaseURL := &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint}
+	if len(baseURL) > 0 && baseURL[0] != "" {
+		parsed, err := url.Parse(baseURL[0])
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse base URL: %w", err)
+		}
+		apiBaseURL = parsed
+	}
+
 	return &Client{
 		httpClient:   httpClient,
-		baseUrl:      &url.URL{Scheme: "https", Host: ApiBase, Path: ApiEndpoint},
+		baseUrl:      apiBaseURL,
 		token:        auth.Token,
 		refreshToken: auth.RefreshToken,
 		tenant:       tenantId,
@@ -67,8 +76,8 @@ func (c *Client) joinURL(path string) *url.URL {
 }
 
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`  //nolint:gosec // G117: false positive, this is a token response struct field
-	RefreshToken string `json:"refresh_token"` //nolint:gosec // G117: false positive, this is a token response struct field
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type UsersResponse struct {
@@ -160,7 +169,7 @@ func (c *Client) doRequest(
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
 	req.Header.Set("xero-tenant-id", c.tenant)
 
-	rawResponse, err := c.httpClient.Do(req) //nolint:gosec // G704: URL is constructed from hardcoded constants, not user input
+	rawResponse, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}

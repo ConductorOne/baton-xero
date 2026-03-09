@@ -8,6 +8,7 @@ type Xero struct {
 	RefreshToken string `mapstructure:"refresh-token"`
 	XeroClientId string `mapstructure:"xero-client-id"`
 	XeroClientSecret string `mapstructure:"xero-client-secret"`
+	BaseUrl string `mapstructure:"base-url"`
 }
 
 func (c *Xero) findFieldByTag(tagValue string) (any, bool) {
