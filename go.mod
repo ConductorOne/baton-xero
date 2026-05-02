@@ -3,7 +3,7 @@ module github.com/conductorone/baton-xero
 go 1.25.2
 
 require (
-	github.com/conductorone/baton-sdk v0.8.30
+	github.com/conductorone/baton-sdk v0.9.0
 	github.com/ennyjfrick/ruleguard-logfatal v0.0.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/quasilyte/go-ruleguard/dsl v0.3.23
@@ -41,7 +41,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/conductorone/dpop v0.2.3 // indirect
 	github.com/conductorone/dpop/integrations/dpop_grpc v0.2.3 // indirect
-	github.com/conductorone/dpop/integrations/dpop_oauth2 v0.2.3 // indirect
+	github.com/conductorone/dpop/integrations/dpop_oauth2 v0.2.5 // indirect
 	github.com/deckarep/golang-set/v2 v2.7.0 // indirect
 	github.com/doug-martin/goqu/v9 v9.19.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
