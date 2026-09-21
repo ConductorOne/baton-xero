@@ -30,7 +30,7 @@ baton resources
 ## docker
 
 ```
-docker run --rm -v $(pwd):/out -e BATON_XERO_CLIENT_ID=xeroClientId BATON_XERO_CLIENT_SECRET=xeroClientSecret ghcr.io/conductorone/baton-xero:latest -f "/out/sync.c1z"
+docker run --rm -v $(pwd):/out -e BATON_XERO_CLIENT_ID=xeroClientId BATON_XERO_CLIENT_SECRET=xeroClientSecret public.ecr.aws/conductorone/baton-xero:latest -f "/out/sync.c1z"
 docker run --rm -v $(pwd):/out ghcr.io/conductorone/baton:latest -f "/out/sync.c1z" resources
 ```
 
