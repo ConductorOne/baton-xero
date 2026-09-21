@@ -1,0 +1,345 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Xero API (baton-xero connector surface)",
+    "version": "1.0.0",
+    "description": "Describes only the Xero endpoints baton-xero calls. Scope is derived from pkg/xero/{client,auth}.go; response shapes are settled against Xero's published OpenAPI document (XeroAPI/Xero-OpenAPI, xero_accounting.yaml, accessed 2026-09-21) and narrowed to the fields pkg/xero/models.go declares.\n\nThree hosts are in play. The token endpoint is on https://identity.xero.com; /connections is on https://api.xero.com at the root; the accounting operations are on https://api.xero.com/api.xro/2.0. Only the accounting base is overridable — NewClient's optional baseURL argument replaces it and leaves the other two hardcoded.\n\nEvery accounting request carries two headers: the bearer access token and `xero-tenant-id`, resolved once at construction by calling /connections and taking the first connection's tenantId.\n\nPagination: none. The connector reads whatever a single response returns for both Users and Organisations, and does not send `page`. Accounts with more users than one page returns would sync incompletely.\n\nThe response envelope Xero returns also carries Id, Status, ProviderName and DateTimeUTC at the top level. The connector declares neither, so they are omitted here per spec-scope-is-connector-scope."
+  },
+  "servers": [
+    {
+      "url": "https://api.xero.com",
+      "description": "Xero API host. The accounting base path (/api.xro/2.0) is overridable via NewClient's baseURL argument; /connections is not."
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": [],
+      "tenantId": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "authentication",
+      "description": "Token exchange on identity.xero.com and tenant resolution via /connections."
+    },
+    {
+      "name": "accounting",
+      "description": "Accounting API operations, all requiring the xero-tenant-id header."
+    }
+  ],
+  "paths": {
+    "/connect/token": {
+      "servers": [
+        {
+          "url": "https://identity.xero.com",
+          "description": "Xero identity host. Hardcoded — not affected by the baseURL override."
+        }
+      ],
+      "post": {
+        "operationId": "exchangeToken",
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Obtain or refresh an access token",
+        "description": "Form-encoded. Two grants are used: `client_credentials` when no refresh token is configured, and `refresh_token` otherwise. The client sends client_id and client_secret in the body *and* as HTTP basic auth on the same request.",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "grant_type",
+                  "client_id",
+                  "client_secret",
+                  "scope"
+                ],
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": [
+                      "client_credentials",
+                      "refresh_token"
+                    ]
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "refresh_token": {
+                    "type": "string",
+                    "description": "Sent only for the refresh_token grant."
+                  },
+                  "scope": {
+                    "type": "string",
+                    "description": "Space-separated. Hardcoded by the client to DefaultScopes.",
+                    "default": "openid email profile offline_access accounting.settings accounting.transactions"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token pair. The connector reads only these two fields; expiry is not tracked, so the token is refreshed on client construction rather than on expiry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/connections": {
+      "get": {
+        "operationId": "getConnections",
+        "tags": [
+          "authentication"
+        ],
+        "summary": "List the tenants this token can access",
+        "description": "Called once at client construction. The connector takes the FIRST connection's tenantId and sends it as `xero-tenant-id` on every subsequent request; it errors when the list is empty. A token authorised for several tenants therefore syncs only one, non-deterministically ordered by Xero.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connections. Note this response is a bare array, not an envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Connection"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api.xro/2.0/Users": {
+      "get": {
+        "operationId": "getUsers",
+        "tags": [
+          "accounting"
+        ],
+        "summary": "List users, optionally filtered by organisation role",
+        "description": "Called twice over: once unfiltered to build the user list, and once per role to build role grants. The role filter is expressed through Xero's `where` clause, which the client assembles as `OrganisationRole==\"<ROLE>\"` from an upper-cased role resource ID.",
+        "externalDocs": {
+          "url": "https://developer.xero.com/documentation/api/accounting/users"
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XeroTenantId"
+          },
+          {
+            "name": "where",
+            "in": "query",
+            "description": "Xero filter expression. The only form this connector emits is `OrganisationRole==\"<ROLE>\"`. Omitted entirely when listing all users.",
+            "example": "OrganisationRole==\"STANDARD\"",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api.xro/2.0/Organisations": {
+      "get": {
+        "operationId": "getOrganisations",
+        "tags": [
+          "accounting"
+        ],
+        "summary": "List organisations",
+        "description": "Also the connector's credential-validation probe (pkg/connector/connector.go:42); any error is reported as Unauthenticated.",
+        "externalDocs": {
+          "url": "https://developer.xero.com/documentation/api/accounting/organisation"
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XeroTenantId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Organisations envelope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganisationsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Access token from exchangeToken."
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "client_id as username, client_secret as password. Used only on the token endpoint."
+      },
+      "tenantId": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "xero-tenant-id",
+        "description": "Tenant selected from getConnections. Required on every accounting request."
+      }
+    },
+    "parameters": {
+      "XeroTenantId": {
+        "name": "xero-tenant-id",
+        "in": "header",
+        "required": true,
+        "description": "Set on every accounting request from the tenant resolved at construction.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "schemas": {
+      "TokenResponse": {
+        "type": "object",
+        "description": "Xero returns more (token_type, expires_in, id_token, scope); the connector declares only these two.",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "Connection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Sent as the xero-tenant-id header on every accounting request."
+          },
+          "tenantName": {
+            "type": "string"
+          }
+        }
+      },
+      "OrganisationRole": {
+        "type": "string",
+        "description": "Role that defines a user's permissions. Enum taken verbatim from Xero's published OpenAPI document. The connector enumerates only the first six as role resources; REMOVED and UNKNOWN are never synced.",
+        "enum": [
+          "READONLY",
+          "INVOICEONLY",
+          "STANDARD",
+          "FINANCIALADVISER",
+          "MANAGEDCLIENT",
+          "CASHBOOKCLIENT",
+          "UNKNOWN",
+          "REMOVED"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "description": "Only the fields pkg/xero/models.go declares. Xero also returns UpdatedDateUTC and IsSubscriber, which the connector does not read.",
+        "properties": {
+          "UserID": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "EmailAddress": {
+            "type": "string",
+            "format": "email"
+          },
+          "FirstName": {
+            "type": "string"
+          },
+          "LastName": {
+            "type": "string"
+          },
+          "OrganisationRole": {
+            "$ref": "#/components/schemas/OrganisationRole"
+          }
+        }
+      },
+      "UsersResponse": {
+        "type": "object",
+        "description": "Xero returns the array under the capitalised key `Users`, confirmed against its published OpenAPI document. The Go struct tag reads `json:\"users\"`; decoding works only because encoding/json matches keys case-insensitively. The sibling OrgResponse uses the capitalised form.",
+        "properties": {
+          "Users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "Organisation": {
+        "type": "object",
+        "description": "Only the fields pkg/xero/models.go declares. Xero's organisation object is much larger.",
+        "properties": {
+          "OrganisationID": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "Name": {
+            "type": "string"
+          },
+          "CountryCode": {
+            "type": "string",
+            "description": "Two-letter country code; Xero models it as its own enum."
+          }
+        }
+      },
+      "OrganisationsResponse": {
+        "type": "object",
+        "properties": {
+          "Organisations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Organisation"
+            }
+          }
+        }
+      }
+    }
+  }
+}
